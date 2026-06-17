@@ -56,35 +56,38 @@ G0     = 9.80665      # m/s²  standard gravity
 R_UNIV = 8.31446      # J/(mol·K)
 MPA    = 1_000_000.0  # Pa per MPa
 
-# Plotly dark sci-fi template
-_BG  = '#03080f'
-_SRF = '#0a1628'
-_GRD = '#142239'
-_CYN = '#00d4ff'
-_ORG = '#ff6b35'
-_GRN = '#39ff14'
-_RED = '#ff2d55'
-_TXT = '#c9d1d9'
-_DIM = '#8b949e'
+# A+C Hybrid palette — Precision Instrument × Spatial Glass
+_BG  = '#060910'                      # near-black base
+_SRF = '#0c0f18'                      # surface
+_GRD = 'rgba(255,255,255,0.05)'
+_AMB = '#e8b84b'                      # amber  — chamber pressure / Pc
+_BLU = '#60b8e8'                      # steel blue — thrust / force
+_GRN = '#70d87a'                      # clean green — structural / safe
+_VIO = '#c080e0'                      # violet — Kn / grain
+_RED = '#e86060'                      # soft red — warning / danger
+_CYN = '#818cf8'                      # indigo — interactive accent (buttons, active tab)
+_TXT = 'rgba(255,255,255,0.88)'
+_DIM = 'rgba(255,255,255,0.25)'
 _PRP = '#a78bfa'
 
-# Pre-computed rgba fill variants (alpha=0.08)
+# Pre-computed rgba fill variants
 _FILL = {
-    '#00d4ff': 'rgba(0,212,255,0.08)',
-    '#ff6b35': 'rgba(255,107,53,0.08)',
-    '#39ff14': 'rgba(57,255,20,0.08)',
-    '#a78bfa': 'rgba(167,139,250,0.08)',
+    _AMB: 'rgba(232,184,75,0.08)',
+    _BLU: 'rgba(96,184,232,0.08)',
+    _GRN: 'rgba(112,216,122,0.07)',
+    _VIO: 'rgba(192,128,224,0.08)',
+    '#818cf8': 'rgba(129,140,248,0.08)',
 }
 
 NEXUS_LAYOUT = dict(
     paper_bgcolor=_BG, plot_bgcolor=_SRF,
-    font=dict(color=_TXT, family='Share Tech Mono, monospace', size=11),
+    font=dict(color=_TXT, family='Inter, system-ui, sans-serif', size=11),
     margin=dict(l=50, r=20, t=40, b=40),
-    legend=dict(bgcolor='rgba(10,22,40,0.8)', bordercolor=_GRD, borderwidth=1),
+    legend=dict(bgcolor='rgba(8,10,20,0.92)', bordercolor='rgba(255,255,255,0.07)', borderwidth=1),
 )
 NEXUS_AXIS = dict(
-    gridcolor=_GRD, zerolinecolor='#1a2d4a',
-    linecolor='#1a2d4a', tickcolor=_DIM, title_font_color=_DIM,
+    gridcolor='rgba(255,255,255,0.04)', zerolinecolor='rgba(255,255,255,0.07)',
+    linecolor='rgba(255,255,255,0.05)', tickcolor=_DIM, title_font_color=_DIM,
 )
 
 
@@ -836,7 +839,7 @@ def plot_overview(res: Dict, prop_name: str) -> go.Figure:
     )
     traces = [
         (res['Pc'] / MPA, _CYN, 'Pc (MPa)', 1, 1),
-        (res['F'],         _ORG, 'F (N)',    1, 2),
+        (res['F'],         _AMB, 'F (N)',    1, 2),
         (res['Isp'],       _GRN, 'Isp (s)',  2, 1),
         (res['r'],         '#a78bfa', 'r (mm/s)', 2, 2),
     ]
@@ -869,8 +872,8 @@ def plot_grain(res: Dict) -> go.Figure:
     ), row=1, col=1)
     fig.add_trace(go.Scatter(
         x=t, y=res['Kn'], name='Kn', mode='lines',
-        line=dict(color=_ORG, width=2.5), fill='tozeroy',
-        fillcolor=_FILL[_ORG],
+        line=dict(color=_AMB, width=2.5), fill='tozeroy',
+        fillcolor=_FILL[_AMB],
     ), row=1, col=2)
 
     for c in (1, 2):
@@ -915,7 +918,7 @@ def plot_structural(struct_arr: List[Tuple], peak_Pc: float) -> go.Figure:
     ))
     fig.add_trace(go.Bar(
         name='Yield Strength Sy', x=mats, y=sy,
-        marker_color=[_ORG]*len(mats), opacity=0.65,
+        marker_color=[_AMB]*len(mats), opacity=0.65,
     ))
     # Safety factor annotation
     for i, (m, s) in enumerate(zip(mats, sf)):
@@ -948,13 +951,13 @@ def plot_flight(flight_res: dict) -> go.Figure:
                              line=dict(color=_CYN, width=2),
                              fill='tozeroy', fillcolor='rgba(0,212,255,0.08)'), row=1, col=1)
     fig.add_trace(go.Scatter(x=t, y=vel, mode='lines', name='Velocity',
-                             line=dict(color=_ORG, width=2)), row=1, col=2)
+                             line=dict(color=_AMB, width=2)), row=1, col=2)
     if t_bo:
         for col in (1, 2):
-            fig.add_vline(x=t_bo, line=dict(color=_ORG, width=1.5, dash='dash'),
+            fig.add_vline(x=t_bo, line=dict(color=_AMB, width=1.5, dash='dash'),
                           annotation_text='Burnout' if col == 1 else '',
                           annotation_position='top right',
-                          annotation_font=dict(color=_ORG, size=10), row=1, col=col)
+                          annotation_font=dict(color=_AMB, size=10), row=1, col=col)
     if t_ap and alt_ap:
         fig.add_trace(go.Scatter(x=[t_ap], y=[alt_ap], mode='markers+text',
                                  name='Apogee', marker=dict(color=_GRN, size=10, symbol='diamond'),
@@ -1039,7 +1042,7 @@ def plot_overlay(overlay_sims: list) -> go.Figure:
 
 def plot_temp_sensitivity(prop: 'PropellantData') -> go.Figure:
     T_vals = [-10.0, 20.0, 50.0]
-    colors = {-10.0: _PRP, 20.0: _CYN, 50.0: _ORG}
+    colors = {-10.0: _PRP, 20.0: _CYN, 50.0: _AMB}
     labels = {-10.0: 'Cold (−10 °C)', 20.0: 'Nominal (20 °C)', 50.0: 'Hot (50 °C)'}
     P_Pa = np.linspace(prop.P_min * MPA, prop.P_max * MPA, 200)
     fig = go.Figure()
@@ -1057,7 +1060,7 @@ def plot_temp_sensitivity(prop: 'PropellantData') -> go.Figure:
 
 
 def store_sim_overlay(res: dict, prop_abbr: str, label: str) -> None:
-    _OVERLAY_COLORS = [_CYN, _ORG, _GRN, _PRP]
+    _OVERLAY_COLORS = [_CYN, _AMB, _GRN, _PRP]
     if 'overlay_sims' not in st.session_state:
         st.session_state.overlay_sims = []
     sims = st.session_state.overlay_sims
@@ -1151,340 +1154,504 @@ def _gen_star_shadows(n: int, vw: int = 1920, vh: int = 1080, seed: int = 42) ->
 
 
 def inject_css() -> None:
-    s1 = _gen_star_shadows(700, seed=1)
-    s2 = _gen_star_shadows(200, seed=2)
-    s3 = _gen_star_shadows(80,  seed=3)
-
-    st.markdown(f"""
+    st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-/* ── Starfield ──────────────────────────────────────── */
-#stars  {{ width:1px; height:1px; position:fixed; top:0; left:0; z-index:0; pointer-events:none;
-           border-radius:50%; box-shadow:{s1}; animation:animStar 60s linear infinite; opacity:0.6; }}
-#stars2 {{ width:2px; height:2px; position:fixed; top:0; left:0; z-index:0; pointer-events:none;
-           border-radius:50%; box-shadow:{s2}; animation:animStar 120s linear infinite; opacity:0.5; }}
-#stars3 {{ width:3px; height:3px; position:fixed; top:0; left:0; z-index:0; pointer-events:none;
-           border-radius:50%; box-shadow:{s3}; animation:animStar 200s linear infinite; opacity:0.4; }}
-@keyframes animStar {{
-  from {{ transform:translateY(0);   }}
-  to   {{ transform:translateY(-1080px); }}
-}}
+/* ════════════════════════════════════════════════════
+   NEXUS — Precision Instrument × Spatial Glass
+   Hybrid A+C: cockpit semantics + visionOS depth
+   ════════════════════════════════════════════════════ */
 
-/* ── Global background ─────────────────────────────── */
-.stApp {{
-  background: radial-gradient(ellipse at 20% 10%, #071428 0%, #03080f 60%, #000000 100%) !important;
-  font-family: 'Inter', sans-serif;
-}}
-.main .block-container {{
-  padding-top: 1rem;
+/* ── Base & Background ─────────────────────────────── */
+.stApp {
+  background: #060910 !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image:
+    radial-gradient(ellipse 70% 45% at 30% -5%, rgba(20,60,160,0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(200,130,20,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 30% at 10% 80%, rgba(20,80,50,0.06) 0%, transparent 50%) !important;
+}
+.main .block-container {
+  padding-top: 0;
   max-width: 1600px;
-}}
+}
 
 /* ── Sidebar ───────────────────────────────────────── */
-[data-testid="stSidebar"] {{
-  background: linear-gradient(180deg, #060f22 0%, #040b18 100%) !important;
-  border-right: 2px solid #0d2a50;
-}}
-[data-testid="stSidebar"] .stMarkdown h3 {{
-  color: #00d4ff;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 0.15em;
+[data-testid="stSidebar"] {
+  background: rgba(10,10,15,0.95) !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(20px);
+}
+[data-testid="stSidebar"] .stMarkdown h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-top: 1.2rem;
-  border-bottom: 1px solid #0d2a50;
-  padding-bottom: 0.3rem;
-}}
+  color: rgba(255,255,255,0.25);
+  margin-top: 1.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 
 /* ── Tabs ──────────────────────────────────────────── */
-.stTabs [data-baseweb="tab-list"] {{
-  background: #060f22;
-  border-bottom: 2px solid #0d2a50;
-  gap: 4px;
-  padding: 0 0.5rem;
-}}
-.stTabs [data-baseweb="tab"] {{
+.stTabs [data-baseweb="tab-list"] {
   background: transparent;
-  color: #a0aec0;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.6rem 1.2rem;
-  border-radius: 4px 4px 0 0;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-}}
-.stTabs [data-baseweb="tab"]:hover {{
-  color: #00d4ff;
-  background: rgba(0,212,255,0.07);
-}}
-.stTabs [aria-selected="true"] {{
-  background: rgba(0,212,255,0.12) !important;
-  color: #00d4ff !important;
-  border-color: #0d2a50 #0d2a50 transparent !important;
-  border-bottom: 2px solid #00d4ff !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  gap: 0;
+  padding: 0;
+}
+.stTabs [data-baseweb="tab"] {
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s;
+}
+.stTabs [data-baseweb="tab"]:hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.03);
+}
+.stTabs [aria-selected="true"] {
+  background: transparent !important;
+  color: #fff !important;
+  border-bottom: 2px solid #e8b84b !important;
   font-weight: 600;
-}}
-.stTabs [data-baseweb="tab-panel"] {{
+}
+.stTabs [data-baseweb="tab-panel"] {
   background: transparent;
-  padding-top: 1.5rem;
-}}
+  padding-top: 1.8rem;
+}
 
-/* ── Metrics ───────────────────────────────────────── */
-[data-testid="stMetricValue"] {{
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 1.8rem !important;
-  color: #00d4ff !important;
-  font-weight: 700;
-}}
-[data-testid="stMetricLabel"] {{
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.75rem;
-  color: #a0aec0 !important;
+/* ── Metric cards ──────────────────────────────────── */
+[data-testid="stMetricValue"] {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.7rem !important;
+  font-weight: 500;
+  color: #ffffff !important;
+  letter-spacing: -0.02em;
+}
+[data-testid="stMetricLabel"] {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35) !important;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-}}
-[data-testid="metric-container"] {{
-  background: rgba(6,18,38,0.95);
-  border: 1px solid #1a3a60;
-  border-radius: 8px;
+  letter-spacing: 0.08em;
+}
+[data-testid="metric-container"] {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
   padding: 1rem 1.2rem;
-  box-shadow: 0 0 20px rgba(0,212,255,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
-}}
+  transition: border-color 0.2s;
+}
+[data-testid="metric-container"]:hover {
+  border-color: rgba(232,184,75,0.28);
+}
 
-/* ── Expanders / Knowledge Base ─────────────────────── */
-.streamlit-expanderHeader {{
-  background: rgba(6,18,38,0.95) !important;
-  border: 1px solid #1a3a60 !important;
-  border-radius: 6px !important;
-  color: #00d4ff !important;
-  font-family: 'Share Tech Mono', monospace !important;
-  font-size: 0.85rem !important;
-  letter-spacing: 0.05em;
-  padding: 0.75rem 1rem !important;
-}}
-.streamlit-expanderContent {{
-  background: rgba(4,11,24,0.98) !important;
-  border: 1px solid #1a3a60 !important;
+/* ── Expanders ─────────────────────────────────────── */
+.streamlit-expanderHeader {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  color: rgba(255,255,255,0.8) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  padding: 0.8rem 1.1rem !important;
+  transition: background 0.2s !important;
+}
+.streamlit-expanderHeader:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+.streamlit-expanderContent {
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
   border-top: none !important;
-  border-radius: 0 0 6px 6px !important;
-  padding: 1rem !important;
-}}
+  border-radius: 0 0 10px 10px !important;
+  padding: 1.2rem !important;
+}
 
 /* ── Buttons ───────────────────────────────────────── */
-.stButton > button {{
-  background: linear-gradient(135deg, #0a2040 0%, #0f3060 100%);
-  border: 1px solid #2a5a90;
-  color: #7dd3fc;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border-radius: 6px;
-  padding: 0.5rem 1.2rem;
+.stButton > button {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
   transition: all 0.2s;
-  cursor: pointer;
-}}
-.stButton > button:hover {{
-  background: rgba(0,212,255,0.18);
-  border-color: #00d4ff;
-  color: #00d4ff;
-  box-shadow: 0 0 18px rgba(0,212,255,0.35);
+}
+.stButton > button:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.2);
+  color: #fff;
   transform: translateY(-1px);
-}}
-.stButton > button[kind="primary"] {{
-  background: linear-gradient(135deg, #001a40 0%, #003070 100%);
-  border: 2px solid #00d4ff;
-  color: #00d4ff;
-  box-shadow: 0 0 24px rgba(0,212,255,0.3);
-  font-size: 0.88rem;
-  padding: 0.8rem 2rem;
-  letter-spacing: 0.14em;
-}}
-.stButton > button[kind="primary"]:hover {{
-  background: linear-gradient(135deg, #002050 0%, #004090 100%);
-  box-shadow: 0 0 36px rgba(0,212,255,0.5);
-}}
+}
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.65rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.4), 0 4px 15px rgba(99,102,241,0.25);
+  letter-spacing: 0.01em;
+}
+.stButton > button[kind="primary"]:hover {
+  background: linear-gradient(135deg, #7c7ff5, #93a0fa);
+  box-shadow: 0 0 0 1px rgba(129,140,248,0.6), 0 4px 25px rgba(99,102,241,0.4);
+  transform: translateY(-1px);
+}
 
 /* ── Form inputs ───────────────────────────────────── */
 .stSelectbox > div > div,
 .stNumberInput > div > div > input,
-.stSlider > div,
-.stTextInput > div > input {{
-  background: rgba(4,11,24,0.95) !important;
-  border: 1px solid #1a3a60 !important;
-  color: #e2e8f0 !important;
-  border-radius: 6px;
-  font-size: 0.9rem !important;
-}}
-.stSelectbox label, .stNumberInput label, .stSlider label, .stTextInput label {{
-  color: #a0aec0 !important;
-  font-family: 'Share Tech Mono', monospace !important;
-  font-size: 0.78rem !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-}}
+.stTextInput > div > input {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  color: rgba(255,255,255,0.9) !important;
+  border-radius: 8px !important;
+  font-size: 0.875rem !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: border-color 0.2s !important;
+}
+.stSelectbox > div > div:focus-within,
+.stNumberInput > div > div:focus-within,
+.stTextInput > div:focus-within {
+  border-color: rgba(129,140,248,0.5) !important;
+}
+.stSelectbox label, .stNumberInput label, .stSlider label, .stTextInput label {
+  color: rgba(255,255,255,0.35) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
 
-/* ── Info / warning boxes ──────────────────────────── */
-.stAlert {{
-  background: rgba(4,11,24,0.95) !important;
-  border-radius: 6px !important;
+/* ── Slider ─────────────────────────────────────────── */
+.stSlider > div > div > div > div {
+  background: #6366f1 !important;
+}
+
+/* ── Alerts ─────────────────────────────────────────── */
+.stAlert {
+  background: rgba(255,255,255,0.03) !important;
+  border-radius: 8px !important;
   font-family: 'Inter', sans-serif;
-  font-size: 0.88rem;
-}}
-[data-testid="stInfo"] {{ border-left: 4px solid #00d4ff !important; color: #a0d8ef !important; }}
-[data-testid="stWarning"] {{ border-left: 4px solid #ff6b35 !important; }}
-[data-testid="stError"] {{ border-left: 4px solid #ff2d55 !important; }}
-[data-testid="stSuccess"] {{ border-left: 4px solid #39ff14 !important; }}
+  font-size: 0.875rem;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+}
+[data-testid="stInfo"]    { border-left: 2px solid #6366f1 !important; }
+[data-testid="stWarning"] { border-left: 2px solid #f59e0b !important; }
+[data-testid="stError"]   { border-left: 2px solid #ef4444 !important; }
+[data-testid="stSuccess"] { border-left: 2px solid #22c55e !important; }
 
 /* ── Chat ──────────────────────────────────────────── */
-[data-testid="stChatInput"] > div {{
-  background: rgba(6,18,38,0.95) !important;
-  border: 1px solid #1a3a60 !important;
-  border-radius: 8px !important;
-}}
-[data-testid="stChatMessageContent"] {{
-  background: rgba(6,18,38,0.85) !important;
-  border: 1px solid #1a3a60;
-  border-radius: 8px;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.92rem;
-  color: #e2e8f0 !important;
-  line-height: 1.6;
-}}
+[data-testid="stChatInput"] > div {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 10px !important;
+}
+[data-testid="stChatMessageContent"] {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.85) !important;
+  line-height: 1.7;
+}
 
 /* ── Scrollbar ─────────────────────────────────────── */
-::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-::-webkit-scrollbar-track {{ background: #030810; }}
-::-webkit-scrollbar-thumb {{ background: #1a3a60; border-radius: 3px; }}
-::-webkit-scrollbar-thumb:hover {{ background: #00d4ff; }}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-/* ── NEXUS panel cards ─────────────────────────────── */
-.nexus-card {{
-  background: rgba(6,18,38,0.95);
-  border: 1px solid #1a3a60;
-  border-radius: 10px;
-  padding: 1.3rem 1.6rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(0,212,255,0.03);
-}}
-.nexus-h1 {{
-  font-family: 'Orbitron', monospace;
-  font-size: 2rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, #00d4ff 0%, #0099dd 40%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: 0.1em;
+/* ── Glass cards ───────────────────────────────────── */
+.nexus-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 1.4rem 1.7rem;
+  margin-bottom: 1.1rem;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s;
+}
+.nexus-card:hover {
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* ── Typography ─────────────────────────────────────── */
+.nexus-h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.03em;
   margin: 0;
-}}
-.nexus-subtitle {{
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.75rem;
-  color: #4a7fa5;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin-top: 0.3rem;
-}}
-.nexus-section {{
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  color: #00d4ff;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  border-bottom: 1px solid #1a3a60;
-  padding-bottom: 0.4rem;
-  margin: 1.3rem 0 0.9rem;
+}
+.nexus-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.35);
+  margin-top: 0.2rem;
+  font-weight: 400;
+}
+.nexus-section {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
   font-weight: 600;
-}}
-.kv-row {{
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-bottom: 0.5rem;
+  margin: 1.6rem 0 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Key-value pairs ────────────────────────────────── */
+.kv-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.32rem 0;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.kv-key { color: rgba(255,255,255,0.35); font-family: 'Inter', sans-serif; font-size: 0.8rem; }
+.kv-val { color: rgba(255,255,255,0.9); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 500; }
+.kv-val.cyan   { color: #818cf8; }
+.kv-val.orange { color: #e8b84b; }
+.kv-val.green  { color: #70d87a; }
+.kv-val.red    { color: #e86060; }
+.kv-val.blue   { color: #60b8e8; }
+.kv-val.violet { color: #c080e0; }
+
+/* ── Semantic metric card borders (A+C hybrid) ─────── */
+.metric-pressure [data-testid="metric-container"] { border-color: rgba(232,184,75,0.22) !important; }
+.metric-pressure [data-testid="metric-container"]:hover { border-color: rgba(232,184,75,0.45) !important; }
+.metric-pressure [data-testid="stMetricValue"] { color: #e8b84b !important; }
+.metric-thrust [data-testid="metric-container"] { border-color: rgba(96,184,232,0.2) !important; }
+.metric-thrust [data-testid="metric-container"]:hover { border-color: rgba(96,184,232,0.4) !important; }
+.metric-thrust [data-testid="stMetricValue"] { color: #60b8e8 !important; }
+.metric-safe [data-testid="metric-container"] { border-color: rgba(112,216,122,0.2) !important; }
+.metric-safe [data-testid="metric-container"]:hover { border-color: rgba(112,216,122,0.42) !important; }
+.metric-safe [data-testid="stMetricValue"] { color: #70d87a !important; }
+.metric-warn [data-testid="metric-container"] { border-color: rgba(232,184,75,0.3) !important; }
+.metric-warn [data-testid="stMetricValue"] { color: #e8b84b !important; }
+.metric-danger [data-testid="metric-container"] { border-color: rgba(232,96,96,0.3) !important; }
+.metric-danger [data-testid="stMetricValue"] { color: #e86060 !important; }
+.metric-grain [data-testid="metric-container"] { border-color: rgba(192,128,224,0.2) !important; }
+.metric-grain [data-testid="metric-container"]:hover { border-color: rgba(192,128,224,0.4) !important; }
+.metric-grain [data-testid="stMetricValue"] { color: #c080e0 !important; }
+
+/* ── Thin fill-bar under metric cards ──────────────── */
+.fill-bar-track {
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 1px;
+  margin-top: 0.55rem;
+  overflow: hidden;
+}
+.fill-bar {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.7s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Status badge ───────────────────────────────────── */
+.status-nominal {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(112,216,122,0.08);
+  border: 1px solid rgba(112,216,122,0.22);
+  border-radius: 6px;
+  padding: 0.22rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+  color: #70d87a;
+}
+.status-warning {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(232,184,75,0.08);
+  border: 1px solid rgba(232,184,75,0.25);
+  border-radius: 6px;
+  padding: 0.22rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+  color: #e8b84b;
+}
+.status-danger {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(232,96,96,0.08);
+  border: 1px solid rgba(232,96,96,0.25);
+  border-radius: 6px;
+  padding: 0.22rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+  color: #e86060;
+}
+.status-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+
+/* ── Session top bar ────────────────────────────────── */
+.nexus-topbar {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.55rem 0 0.55rem;
+  margin-bottom: 0.6rem;
   border-bottom: 1px solid rgba(255,255,255,0.05);
-}}
-.kv-key {{ color: #a0aec0; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; }}
-.kv-val {{ color: #e2e8f0; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; font-weight: 500; }}
-.kv-val.cyan {{ color: #00d4ff; }}
-.kv-val.orange {{ color: #ff8c55; }}
-.kv-val.green {{ color: #4ade80; }}
-.kv-val.red {{ color: #ff5577; }}
-.motor-badge {{
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.18);
+  letter-spacing: 0.07em;
+}
+.nexus-topbar span { color: rgba(255,255,255,0.35); }
+.nexus-topbar .sep { color: rgba(255,255,255,0.1); margin: 0 0.15rem; }
+
+/* ── Motor class badge ──────────────────────────────── */
+.motor-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #001a40, #00296e);
-  border: 2px solid #00d4ff;
-  border-radius: 8px;
-  padding: 0.3rem 1rem;
-  font-family: 'Orbitron', monospace;
+  background: rgba(232,184,75,0.08);
+  border: 1px solid rgba(232,184,75,0.28);
+  border-radius: 10px;
+  padding: 0.3rem 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 1.8rem;
-  color: #00d4ff;
-  box-shadow: 0 0 28px rgba(0,212,255,0.4);
-}}
-.warn-box {{
-  background: rgba(255,107,53,0.10);
-  border: 1px solid rgba(255,107,53,0.5);
+  font-weight: 600;
+  color: #e8b84b;
+}
+
+/* ── Status boxes ───────────────────────────────────── */
+.warn-box {
+  background: rgba(251,146,60,0.07);
+  border: 1px solid rgba(251,146,60,0.2);
+  border-left: 2px solid #fb923c;
   border-radius: 8px;
-  padding: 0.9rem 1.2rem;
+  padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.82rem;
-  color: #ffaa80;
-  line-height: 1.5;
-}}
-.danger-box {{
-  background: rgba(255,45,85,0.10);
-  border: 1px solid rgba(255,45,85,0.6);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: #fdba74;
+  line-height: 1.55;
+}
+.danger-box {
+  background: rgba(239,68,68,0.07);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-left: 2px solid #ef4444;
   border-radius: 8px;
-  padding: 0.9rem 1.2rem;
+  padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.82rem;
-  color: #ff7799;
-  line-height: 1.5;
-}}
-.ok-box {{
-  background: rgba(57,255,20,0.07);
-  border: 1px solid rgba(57,255,20,0.45);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  line-height: 1.55;
+}
+.ok-box {
+  background: rgba(34,197,94,0.06);
+  border: 1px solid rgba(34,197,94,0.18);
+  border-left: 2px solid #22c55e;
   border-radius: 8px;
-  padding: 0.9rem 1.2rem;
+  padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.82rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
   color: #86efac;
-  line-height: 1.5;
-}}
-@media (max-width: 768px) {{
-  [data-testid="stSidebar"] {{ width: auto !important; min-width: unset !important; max-width: unset !important; }}
-  .nexus-h1 {{ font-size: 1.3rem !important; }}
-  .kv-row {{ flex-direction: column !important; }}
-  .nexus-card {{ padding: 0.7rem !important; }}
-  [data-testid="stMetricValue"] {{ font-size: 1.3rem !important; }}
-  .stTabs [data-baseweb="tab"] {{ font-size: 0.7rem !important; }}
-}}
-@media (max-width: 480px) {{
-  .nexus-h1 {{ font-size: 1.1rem !important; }}
-  .motor-badge {{ font-size: 1.2rem !important; }}
-  #stars, #stars2, #stars3 {{ display: none !important; animation: none !important; }}
-}}
+  line-height: 1.55;
+}
+
+/* ── Markdown text ──────────────────────────────────── */
+.stMarkdown p, .stMarkdown li {
+  color: rgba(255,255,255,0.65) !important;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.stMarkdown strong { color: rgba(255,255,255,0.9) !important; }
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+  color: rgba(255,255,255,0.9) !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.stMarkdown code {
+  background: rgba(129,140,248,0.12) !important;
+  color: #a5b4fc !important;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+}
+
+/* ── Dataframes / tables ────────────────────────────── */
+.stDataFrame { border-radius: 10px; overflow: hidden; }
+[data-testid="stTable"] th {
+  background: rgba(255,255,255,0.04) !important;
+  color: rgba(255,255,255,0.4) !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* ── Caption text ───────────────────────────────────── */
+.stCaption, [data-testid="stCaptionContainer"] p {
+  color: rgba(255,255,255,0.3) !important;
+  font-size: 0.78rem !important;
+}
+
+@media (max-width: 768px) {
+  [data-testid="stSidebar"] { width: auto !important; min-width: unset !important; max-width: unset !important; }
+  .nexus-h1 { font-size: 1.2rem !important; }
+  .kv-row { flex-direction: column !important; align-items: flex-start !important; }
+  .nexus-card { padding: 0.85rem 1rem !important; border-radius: 10px !important; }
+  [data-testid="stMetricValue"] { font-size: 1.3rem !important; }
+  .stTabs [data-baseweb="tab"] { font-size: 0.72rem !important; padding: 0.5rem 0.65rem !important; }
+}
+@media (max-width: 480px) {
+  .nexus-h1 { font-size: 1.05rem !important; }
+  .motor-badge { font-size: 1.3rem !important; }
+}
 </style>
-<div id="stars"></div>
-<div id="stars2"></div>
-<div id="stars3"></div>
 """, unsafe_allow_html=True)
 
 
 def nexus_header() -> None:
-    st.markdown("""
-<div class="nexus-card" style="text-align:center; margin-bottom:1.5rem; padding:1.8rem;">
-  <div class="nexus-h1">NEXUS</div>
-  <div class="nexus-subtitle">High-Power Rocketry Simulation Suite · v3.0</div>
-  <div style="margin-top:0.8rem; font-family:'Share Tech Mono',monospace; font-size:0.68rem; color:#2a4a6a; letter-spacing:0.12em;">
-    INTERNAL BALLISTICS · GRAIN REGRESSION · STRUCTURAL MARGIN · .ENG EXPORT · AI MENTOR
+    now_str = datetime.utcnow().strftime('%Y-%m-%d  %H:%M UTC')
+    st.markdown(f"""
+<div class="nexus-topbar">
+  <span>NEXUS</span>
+  <span class="sep">/</span>
+  SRM Simulation Suite
+  <span class="sep">/</span>
+  v3.0
+  <span style="margin-left:auto;">{now_str}</span>
+</div>
+<div style="padding:1.2rem 0 1.1rem; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:1.8rem; display:flex; align-items:center; gap:1.2rem;">
+  <div>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:28px; height:28px; background:linear-gradient(135deg,rgba(20,60,180,0.85),rgba(40,100,220,0.7)); border:1px solid rgba(60,120,240,0.35); border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; font-weight:700; color:#90b8f0; letter-spacing:-0.05em; flex-shrink:0;">N</div>
+      <div class="nexus-h1">NEXUS</div>
+    </div>
+    <div class="nexus-subtitle" style="padding-left:2.65rem;">Solid Rocket Motor Simulation &nbsp;·&nbsp; v3.0</div>
+  </div>
+  <div style="margin-left:auto; display:flex; gap:1.8rem; align-items:center;">
+    <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Internal Ballistics</span>
+    <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Grain Regression</span>
+    <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Structural</span>
+    <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Flight</span>
+    <div style="background:rgba(232,184,75,0.08); border:1px solid rgba(232,184,75,0.22); border-radius:6px; padding:0.25rem 0.75rem; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:600; color:#e8b84b; letter-spacing:0.06em;">SIMULATION SUITE</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1499,11 +1666,11 @@ def kv(label: str, value: str, cls: str = '') -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def render_knowledge_base() -> None:
-    st.markdown('<div class="nexus-section">📚 Engineering Knowledge Base</div>', unsafe_allow_html=True)
-    st.caption('Textbook-level reference for key equations used in this simulation. Expand each section.')
+    st.markdown('<div class="nexus-section">Engineering Reference</div>', unsafe_allow_html=True)
+    st.caption('Textbook-level reference for key equations used in this simulation.')
 
     # ── Internal Ballistics ──────────────────────────────────────────────
-    with st.expander('🔥  INTERNAL BALLISTICS  —  Choked Flow, Saint-Robert Law, C* Efficiency'):
+    with st.expander('Internal Ballistics — Choked Flow, Saint-Robert Law, C* Efficiency'):
         st.markdown("""
 **Saint-Robert (Vieille) Burn Rate Law**
 
@@ -1544,7 +1711,7 @@ Unit conversion: $a_{SI}$ [m/s · Pa⁻ⁿ] = a [mm/s · MPa⁻ⁿ] × 10⁻³ �
         st.markdown('**Ref:** Sutton & Biblarz (2016) §3, §13; Turner (2009) §6')
 
     # ── Propellant Material Science ──────────────────────────────────────
-    with st.expander('⚗️  PROPELLANT MATERIAL SCIENCE  —  Polymer Binders, Curing, Oxidizer Packing'):
+    with st.expander('Propellant Material Science — Polymer Binders, Curing, Oxidizer Packing'):
         st.markdown('**Oxygen Balance (OB%)**')
         st.latex(r'OB\% = \frac{1600}{M_W}\left(O - 2C - \frac{H}{2} + \frac{Cl}{2} - 1.5Al - Mg\right)')
         st.markdown("""
@@ -1584,7 +1751,7 @@ To achieve high theoretical maximum density (TMD) for AP/HTPB:
 """)
 
     # ── Structural Mechanics ─────────────────────────────────────────────
-    with st.expander('🔩  STRUCTURAL MECHANICS  —  Hoop Stress, Lamé Equations, Safety Factor'):
+    with st.expander('Structural Mechanics — Hoop Stress, Lamé Equations, Safety Factor'):
         st.markdown('**Thin-Wall Cylinder (t/ri < 0.1)**')
         st.latex(r'\sigma_h = \frac{P_c \cdot r_i}{t} \qquad \sigma_a = \frac{P_c \cdot r_i}{2t}')
         st.markdown('σ_h = hoop (circumferential), σ_a = axial (longitudinal). Hoop stress is limiting.')
@@ -1613,7 +1780,7 @@ From the Lamé inner-radius hoop solution:
         st.markdown('**Ref:** Shigley\'s Mechanical Engineering Design §3-14; Roark\'s Formulas for Stress and Strain §13')
 
     # ── BATES Grain Geometry ─────────────────────────────────────────────
-    with st.expander('📐  BATES GRAIN GEOMETRY  —  Surface Area, Regression, Port-to-Throat'):
+    with st.expander('BATES Grain Geometry — Surface Area, Regression, Port-to-Throat'):
         st.markdown('**Single BATES Segment Burning Surface Area**')
         st.latex(r'A_{b,seg} = \underbrace{\pi D_i L}_{\text{core}} + \underbrace{2 \cdot \frac{\pi}{4}(D_o^2 - D_i^2)}_{\text{two end faces}}')
         st.markdown('Di = inner diameter (grows with time), Do = outer diameter (constant = casing ID), L = segment length (decreases from both ends).')
@@ -1631,7 +1798,7 @@ From the Lamé inner-radius hoop solution:
         st.markdown('**Ref:** Nakka (2023) Grain Design Guide; Sutton & Biblarz §13')
 
     # ── NAR/TRA Motor Classification ─────────────────────────────────────
-    with st.expander('🚀  MOTOR CLASSIFICATION  —  NAR/TRA Impulse Classes'):
+    with st.expander('Motor Classification — NAR/TRA Impulse Classes'):
         data = {
             'Class': ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'],
             'Total Impulse (N·s)': ['1.26–2.50','2.51–5.00','5.01–10.0','10.1–20.0',
@@ -1804,7 +1971,7 @@ def main() -> None:
 
         # ── RUN BUTTON ──────────────────────────────────────────────────
         st.markdown('<br>', unsafe_allow_html=True)
-        run_btn = st.button('⚡ EXECUTE SIMULATION', use_container_width=True, type='primary')
+        run_btn = st.button('Run Simulation', use_container_width=True, type='primary')
 
     # ══════════════════════════════════════════════════════════════════════
     # SIMULATION EXECUTION
@@ -1861,15 +2028,15 @@ def main() -> None:
     # TABS
     # ══════════════════════════════════════════════════════════════════════
     tab_cmd, tab_grain, tab_br, tab_struct, tab_export, tab_flight, tab_sens, tab_kb, tab_ai = st.tabs([
-        '⚡ Command Center',
-        '📐 Grain Regression',
-        '🔥 Burn Rate Law',
-        '🔩 Structural Margin',
-        '📥 Data Export',
-        '🚀 Flight Trajectory',
-        '🔍 Sensitivity & Overlay',
-        '📚 Knowledge Base',
-        '🤖 AI Mentor',
+        'Command Center',
+        'Grain Regression',
+        'Burn Rate',
+        'Structural',
+        'Export',
+        'Flight',
+        'Sensitivity',
+        'Reference',
+        'AI Mentor',
     ])
 
     res       = st.session_state.results
@@ -1888,11 +2055,11 @@ def main() -> None:
         if res is None:
             st.markdown("""
 <div class="nexus-card" style="text-align:center; padding:3rem;">
-  <div style="font-family:Orbitron,monospace; font-size:1rem; color:#2a4a6a; letter-spacing:0.1em;">
-    AWAITING MISSION PARAMETERS
+  <div style="font-family:'Inter',sans-serif; font-size:0.95rem; color:#484f58; font-weight:500;">
+    No simulation data
   </div>
-  <div style="font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:#1a3050; margin-top:0.75rem;">
-    Configure propellant · grain · nozzle in sidebar → Execute Simulation
+  <div style="font-family:'Inter',sans-serif; font-size:0.8rem; color:#30363d; margin-top:0.6rem;">
+    Configure propellant, grain, and nozzle in the sidebar, then click Run Simulation.
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1918,10 +2085,10 @@ def main() -> None:
       {kv('Burn Profile', res["profile"])}
     </div>
     <div style="flex:1; min-width:200px;">
-      {kv('Max Thrust',   f'{res["max_thrust"]:.1f} N',  'orange')}
+      {kv('Max Thrust',   f'{res["max_thrust"]:.1f} N',   'blue')}
       {kv('Avg Thrust',   f'{res["avg_thrust"]:.1f} N')}
       {kv('Max Pc',       f'{res["max_Pc_MPa"]:.3f} MPa', 'orange')}
-      {kv('Avg Isp',      f'{res["avg_Isp"]:.1f} s',     'cyan')}
+      {kv('Avg Isp',      f'{res["avg_Isp"]:.1f} s',      'cyan')}
       {kv('Avg r',        f'{res["avg_r"]:.2f} mm/s')}
     </div>
     <div style="flex:1; min-width:200px;">
@@ -1943,27 +2110,64 @@ def main() -> None:
             if strct and strct['SF_yield'] < 2.0:
                 st.markdown('<div class="danger-box">🛑 Structural safety factor SF < 2.0 — Casing design is UNSAFE. Increase wall thickness immediately.</div>', unsafe_allow_html=True)
 
-            # Metrics row
-            _tw = res['max_thrust'] / (launch_mass_kg * G0)
-            c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-            c1.metric('Total Impulse', f'{res["total_impulse"]:.1f} N·s')
-            c2.metric('Max Thrust', f'{res["max_thrust"]:.1f} N')
-            c3.metric('Max Pc', f'{res["max_Pc_MPa"]:.3f} MPa')
-            c4.metric('Avg Isp', f'{res["avg_Isp"]:.1f} s')
-            c5.metric('Burn Time', f'{res["burn_time"]:.3f} s')
-            c6.metric('Struct. SF', f'{strct["SF_yield"]:.2f}' if strct else 'N/A')
-            c7.metric('Max T/W', f'{_tw:.2f}', delta='✅ LIFTS OFF' if _tw > 5 else '⚠ LOW T/W' if _tw > 1 else '❌ NO LIFTOFF')
+            # Metrics row — semantic color-coded instrument cards with fill bars
+            _tw  = res['max_thrust'] / (launch_mass_kg * G0)
+            _sf  = strct['SF_yield'] if strct else 0.0
+            _sf_str = f'{_sf:.2f}' if strct else 'N/A'
+            _tw_str = f'{_tw:.2f}'
+
+            # Semantic status colours
+            sf_border  = 'rgba(112,216,122,0.22)' if _sf >= 4 else 'rgba(232,184,75,0.28)' if _sf >= 2 else 'rgba(232,96,96,0.28)'
+            sf_color   = '#70d87a' if _sf >= 4 else '#e8b84b' if _sf >= 2 else '#e86060'
+            sf_sub     = 'PASS' if _sf >= 2 else 'FAIL'
+            sf_sub_col = '#70d87a' if _sf >= 2 else '#e86060'
+            tw_border  = 'rgba(112,216,122,0.22)' if _tw > 5 else 'rgba(232,184,75,0.28)' if _tw > 1 else 'rgba(232,96,96,0.28)'
+            tw_color   = '#70d87a' if _tw > 5 else '#e8b84b' if _tw > 1 else '#e86060'
+            tw_sub     = 'LIFTS OFF' if _tw > 5 else 'LOW T/W' if _tw > 1 else 'NO LIFTOFF'
+            tw_sub_col = '#70d87a' if _tw > 5 else '#e8b84b' if _tw > 1 else '#e86060'
+
+            # Fill bar widths (0-100%)
+            it_pct     = min(100, res['total_impulse'] / 5000 * 100)
+            th_pct     = min(100, res['max_thrust']    / 1000 * 100)
+            pc_pct     = min(100, res['max_Pc_MPa']    / 15   * 100)
+            isp_pct    = min(100, res['avg_Isp']       / 300  * 100)
+            tb_pct     = min(100, res['burn_time']      / 15   * 100)
+            sf_pct     = min(100, _sf                  / 8    * 100)
+            tw_pct     = min(100, _tw                  / 10   * 100)
+
+            def _mc(label, value, color, border, sub, sub_col, bar_pct):
+                return f"""
+<div style="background:rgba(255,255,255,0.032);border:1px solid {border};border-radius:11px;padding:0.85rem 1rem 0.7rem;backdrop-filter:blur(10px);transition:border-color 0.2s;">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.22);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.35rem;">{label}</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:1.45rem;font-weight:500;color:{color};letter-spacing:-0.02em;line-height:1;">{value}</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:{sub_col};margin-top:0.25rem;letter-spacing:0.07em;">{sub}</div>
+  <div style="height:2px;background:rgba(255,255,255,0.06);border-radius:1px;margin-top:0.55rem;overflow:hidden;">
+    <div style="height:100%;width:{bar_pct:.0f}%;background:{color};border-radius:1px;"></div>
+  </div>
+</div>"""
+
+            st.markdown(f"""
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1.1rem;">
+  {_mc('Total Impulse', f'{res["total_impulse"]:.0f} N·s', '#60b8e8', 'rgba(96,184,232,0.2)', f'Class {cls}', '#60b8e8', it_pct)}
+  {_mc('Max Thrust', f'{res["max_thrust"]:.0f} N', '#60b8e8', 'rgba(96,184,232,0.2)', f'Avg {res["avg_thrust"]:.0f} N', 'rgba(255,255,255,0.2)', th_pct)}
+  {_mc('Max Pc', f'{res["max_Pc_MPa"]:.2f} MPa', '#e8b84b', 'rgba(232,184,75,0.22)', f'Kn {res["max_Kn"]:.0f}', 'rgba(255,255,255,0.2)', pc_pct)}
+  {_mc('Avg Isp', f'{res["avg_Isp"]:.0f} s', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0.09)', f'r̄ {res["avg_r"]:.1f} mm/s', 'rgba(255,255,255,0.2)', isp_pct)}
+  {_mc('Burn Time', f'{res["burn_time"]:.2f} s', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0.09)', f'{res["prop_mass_kg"]*1e3:.1f} g prop', 'rgba(255,255,255,0.2)', tb_pct)}
+  {_mc('Struct. SF', _sf_str, sf_color, sf_border, sf_sub, sf_sub_col, sf_pct)}
+  {_mc('Max T/W', _tw_str, tw_color, tw_border, tw_sub, tw_sub_col, tw_pct)}
+</div>
+""", unsafe_allow_html=True)
             if _tw < 1:
-                st.markdown('<div class="danger-box">🛑 T/W < 1.0 — Rocket will NOT lift off. Increase thrust or reduce mass.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="danger-box">T/W < 1.0 — Rocket will NOT lift off. Increase thrust or reduce mass.</div>', unsafe_allow_html=True)
             elif _tw < 5:
-                st.markdown('<div class="warn-box">⚠ T/W < 5.0 — Low thrust-to-weight. Rocket may weathercock or fail to clear the launch rod cleanly. Aim for T/W ≥ 5.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warn-box">T/W < 5.0 — Low thrust-to-weight. Rocket may weathercock or fail to clear the launch rod. Aim for T/W ≥ 5.</div>', unsafe_allow_html=True)
 
             # Overview chart
             st.plotly_chart(plot_overview(res, _prop.abbr if _prop else 'Motor'), width='stretch')
 
             # Chemical / stoichiometric panel
             if _prop:
-                st.markdown('<div class="nexus-section">Chemical & Material Layer</div>', unsafe_allow_html=True)
+                st.markdown('<div class="nexus-section">Propellant Properties</div>', unsafe_allow_html=True)
                 ca, cb, cc = st.columns(3)
                 with ca:
                     st.markdown(f"""
@@ -2216,11 +2420,11 @@ def main() -> None:
         if _fr is None:
             st.markdown("""
 <div class="nexus-card" style="text-align:center; padding:3rem;">
-  <div style="font-family:Orbitron,monospace; font-size:1rem; color:#2a4a6a; letter-spacing:0.1em;">
-    AWAITING LAUNCH PARAMETERS
+  <div style="font-family:'Inter',sans-serif; font-size:0.95rem; color:#484f58; font-weight:500;">
+    No flight data
   </div>
-  <div style="font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:#1a3050; margin-top:0.75rem;">
-    Configure Section 7 (Flight & Mission) in sidebar → Execute Simulation
+  <div style="font-family:'Inter',sans-serif; font-size:0.8rem; color:#30363d; margin-top:0.6rem;">
+    Configure Section 7 (Flight & Mission) in the sidebar, then run the simulation.
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -2330,22 +2534,18 @@ _KB: list = [
     {
         "tags": ["c star","c*","cstar","characteristic velocity","c-star","what is c"],
         "title": "C* — Characteristic Velocity",
-        "answer": """**C\\* (C-star) — Characteristic Velocity** is the single best number for measuring how energetically your propellant burns, independent of the nozzle design.
+        "answer": """**C\\* (C-star)** is the single best number for judging how energetically your propellant burns — and it has nothing to do with the nozzle. Two motors with the same propellant and same Kn will have the same C\\*, regardless of whether one has a graphite nozzle and the other has tungsten.
 
-**Plain English:** Imagine two rockets with identical nozzles. The one whose propellant produces hotter, lighter combustion gases will push more mass out faster — that's a higher C\\*. It tells you "how good is the propellant itself?"
+The intuition: imagine two rockets with identical nozzles. The one whose propellant makes hotter, lighter combustion gases pushes more mass out faster per unit of chamber pressure. That's a higher C\\*. It's purely a propellant + combustion quality number.
 
-**Formula:**
-> C\\* = (Chamber Pressure × Throat Area) / Mass Flow Rate
-> C\\* = √(R·Tf / γ) / Γ
+Mathematically: C\\* = (Pc × At) / ṁ — chamber pressure times throat area divided by mass flow rate. Or from first principles, C\\* = √(R·Tf/γ) / Γ, where Tf is flame temperature and Γ is the Vandenkerckhove function.
 
-**What the numbers mean:**
-- KNSB (sugar rocket): ~889 m/s — decent for a hobby propellant
-- APCP standard: ~1578 m/s — much more energetic
-- Liquid hydrogen/oxygen: ~2300+ m/s — top tier
+In practice:
+- KNSB (sugar): ~889 m/s — solid starting point for a hobby propellant
+- APCP: ~1578 m/s — nearly double, which is why it delivers 50% more Isp
+- LH₂/LOX: ~2300+ m/s — this is why space launch vehicles use cryogenics
 
-**C\\* Efficiency (η\\_c\\*)** in the sidebar (default 0.95) accounts for real-world losses: incomplete mixing, heat loss to the casing, and combustion instability. A value of 0.95 means your motor achieves 95% of the theoretical maximum — typical for well-made amateur motors.
-
-**Ref:** Sutton & Biblarz (2016) §3.3"""
+The **η\\_c\\*** slider (default 0.95) in the sidebar accounts for reality: incomplete mixing, heat losses to the casing, minor combustion instabilities. A value of 0.95 means you're hitting 95% of the theoretical maximum — that's normal for a well-made motor. Poorly mixed propellant or a badly designed chamber might only reach 0.88–0.92."""
     },
     {
         "tags": ["dispersion","eta dp","two phase","two-phase","particle","aluminum","al particle","η_dp","phase flow","what is dispersion"],
@@ -2370,7 +2570,9 @@ _KB: list = [
         "title": "Kn — Klemmung Coefficient",
         "answer": """**Kn (Klemmung Coefficient)** = Burning Surface Area ÷ Throat Area (Ab / At)
 
-**Plain English:** Kn tells you how "pressurized" your motor will be. A bigger burning surface relative to the throat means more gas trying to escape through a smaller hole — higher chamber pressure.
+Kn is the master pressure dial for your motor. More burning surface pushing gas through the same throat = more pressure. It's that simple — and that powerful.
+
+The feedback loop is what makes Kn so important: higher Kn → higher pressure → higher burn rate (Saint-Robert law) → more mass flow → even higher pressure. This is why an unstable Kn (spiking curve) can turn into a CATO (catastrophic failure). The system is pressure-seeking, not self-limiting.
 
 **Why it matters:**
 - Higher Kn → Higher chamber pressure → Higher burn rate → Even higher pressure (feedback loop)
@@ -2841,6 +3043,963 @@ Read the results on the Command Center tab. Check:
 
 **Then iterate** — adjust throat size to hit your target Kn/pressure, adjust grain dimensions for desired burn time and total impulse."""
     },
+    # ── NEW ENTRIES — HLG, advanced topics, full rocketry curriculum ────────
+    {
+        "tags": ["hlg","highly loaded grain","highly loaded","high loading","volumetric loading","propellant loading","loading fraction","mass fraction","packing density","how to make hlg","what is hlg","design hlg","hlg motor","hlg missile","hlg weapon","hlg defense","hlg military"],
+        "title": "HLG — Highly Loaded Grain Technology",
+        "answer": """**HLG (Highly Loaded Grain)** is an advanced solid rocket propellant technology that increases the amount of energetic material packed into a given motor volume — giving you greater total impulse, longer range, and better performance without making the motor any bigger or changing the propellant chemistry.
+
+Think of it as the difference between loosely packing a suitcase vs. vacuum-sealing everything in — same bag, dramatically more inside.
+
+**The core idea:**
+In a conventional solid rocket, the grain's shape and burn rate determine thrust and burn time. HLG designs push the propellant mass fraction as high as physically possible by optimizing grain geometry and burn characteristics. More propellant in the same case = more total impulse = more range, without redesigning the airframe or seeker.
+
+**What it enables:**
+- Higher specific impulse (more efficient use of every gram of propellant)
+- Longer burn time and greater energy output per motor
+- Customizable thrust profiles — all-boost, boost/sustain, or tailored curves for terminal maneuvering
+
+**Real-world applications (as of 2025–2026):**
+HLG is actively being developed for military systems:
+- **Air-to-air missiles** — AIM-9 Sidewinder, AIM-120 AMRAAM, AIM-260 JATM extended-range variants
+- **Air defense interceptors** — NGSRI (Next-Generation Short-Range Interceptor), Anduril/Raytheon static-fired an HLG heavywall motor in 2025 demonstrating extended range from China Lake-derived technology
+- **Small unguided rockets** — Navy SBIR (2026) targeting ~30% range increase on the 2.75-inch Mk66 motor with existing materials
+- **Hypersonic and long-range systems** — where every meter of range trades directly against warhead mass
+
+**The three engineering levers:**
+
+**1. Grain geometry**
+BATES is not ideal for maximum loading — the inter-segment gaps are dead volume. End-burning grains get above 92% volumetric efficiency. Finocyl and star geometries sit in the middle (~74–80%) but allow more control over the thrust profile. Picking the right geometry is the first decision.
+
+**2. Core size (ri/ro ratio)**
+The propellant core is volume that doesn't burn — minimizing it maximizes loading. Push ri/ro from the standard 0.40–0.50 down to 0.30–0.35 and loading efficiency climbs noticeably. The tradeoff is higher Kn (higher pressure) and increased erosive burning risk if the port-to-throat ratio J drops below 2.0. You have to check J throughout the entire burn, not just at ignition.
+
+**3. Propellant formulation density**
+Higher density = more mass per unit volume. Bimodal AP particle sizing (e.g., 200 μm coarse + 20 μm fine) fills inter-particle voids so packing density rises from ~0.58 to ~0.65 TMD fraction. Adding more aluminum (up to ~18%) also raises density, though two-phase flow losses partially offset the gain. The target is maximizing ρ × Isp (density-specific impulse), not just Isp alone.
+
+**Typical volumetric loading by geometry:**
+- Standard BATES (ri/ro = 0.50) → ~58–62%
+- Optimized BATES (ri/ro = 0.35) → ~68–72%
+- Finocyl → ~74–80%
+- End-burning → ~92–96%
+
+**The catch:**
+More loading means higher Kn, higher chamber pressure, and a heavier casing to contain it — which partially offsets the mass gains. Corvid Technologies (2021) developed a 3D functionally-graded HLG grain with advanced nozzle concepts to improve efficiency while managing this tradeoff. The optimal design balances loading fraction against structural weight penalty.
+
+**For HPR/amateur context:**
+The same principles apply — tighter ri/ro, fewer inter-segment gaps, denser propellant formulation. NEXUS's sensitivity analysis tab lets you sweep ri to find the crossover point where loading gains stop being worth the pressure penalty.
+
+**Ref:** Anduril/Raytheon HLG static fire (2025); Navy SBIR N261-057 (2026); Sutton & Biblarz §11.3; Kubota (2007) §7"""
+    },
+    {
+        "tags": ["grain geometry","star grain","finocyl","end burning","wagon wheel","dendrite","cylindrical","grain shapes","types of grain","what grain","grain design","slot","tube","rod"],
+        "title": "Grain Geometries — Star, Finocyl, End-Burning & More",
+        "answer": """**Grain geometry determines the thrust-time profile** by controlling how the burning surface area (Ab) evolves as the grain regresses.
+
+---
+
+**BATES (Ballistic Test and Evaluation System)**
+- Multiple hollow cylindrical segments with annular core
+- Burn from: inner core (progressive Ab) + ends (regressive Ab) — these partially cancel → near-neutral
+- Volumetric efficiency: ~58–68% depending on ri/ro
+- **Best for:** Beginners, prototyping, standard HPR motors. Simple to cast and analyze.
+- Tuning: ri/ro controls progressivity; more segments = more propellant but more gaps
+
+---
+
+**End-Burning (Cigarette Grain)**
+- Burns from one end only — exactly like a cigarette
+- Perfectly neutral burn (constant Ab = πro²)
+- Highest volumetric loading (>92%) — almost zero wasted core volume
+- **Challenge:** Very low Kn → low chamber pressure → low thrust. Burn time is very long.
+- **Best for:** Long-duration sustainer motors, altitude-optimized designs where you need the highest possible mass fraction and can tolerate low thrust
+- Ignition: requires embedded igniter wire throughout grain depth
+
+---
+
+**Star Grain**
+- Core shaped like a 4–7 pointed star (fins extending inward)
+- Large initial burning surface → high initial thrust, then regresses to near-neutral
+- Achieves much higher Ab than BATES for the same envelope → higher Kn at same throat
+- **Best for:** Boost motors needing rapid acceleration, military/commercial large motors
+- **Challenge:** Complex mandrel tooling, stress concentrations at star tips → cracking risk
+- Not commonly used in amateur rocketry due to tooling complexity
+
+---
+
+**Finocyl (Fins + Cylinder)**
+- Combination of an axial core with longitudinal fins (slots) extending outward
+- Very high volumetric efficiency (74–82%) with relatively neutral burn
+- Used in most large commercial solid motors (Ariane, solid strap-ons)
+- **Challenge:** Requires precision-machined mandrel; not practical for home casting
+
+---
+
+**Wagon Wheel**
+- Like star grain but with hub-and-spoke geometry — multiple tubes connected by fins
+- Very large initial Ab → extremely progressive burn → used for brief high-thrust applications
+- Structural challenges: thin spokes are fragile
+
+---
+
+**Slotted Tube / Rod-and-Tube**
+- Outer cylinder with longitudinal slots, or inner rod + outer tube with annular gap
+- Burns from slot faces → relatively neutral profile
+- Good for moderate-loading amateur motors with machined/cast inserts
+
+---
+
+**For HPR amateur use: BATES is the right choice.** The other geometries require tooling investment, structural modeling beyond simple Lamé, and extensive testing. Master BATES first."""
+    },
+    {
+        "tags": ["nozzle design","de laval","converging diverging","bell nozzle","conical nozzle","thrust coefficient","cf","expansion ratio","area ratio","nozzle theory","divergence loss","nozzle efficiency","nozzle material","graphite nozzle"],
+        "title": "Nozzle Design — De Laval, Cf, and Expansion Ratio",
+        "answer": """**The de Laval (converging-diverging) nozzle** converts thermal energy of hot combustion gases into directed kinetic energy (thrust).
+
+**How it works:**
+1. **Converging section:** Gas accelerates from near-zero velocity in the chamber to Mach 1 (sonic) at the throat
+2. **Throat:** Minimum area — gas velocity = local speed of sound. Mass flow is determined here.
+3. **Diverging section:** Supersonic expansion — gas continues accelerating past Mach 1 as pressure drops and velocity rises
+
+**The Thrust Coefficient (Cf):**
+> F = Cf × Pc × At
+
+Cf tells you how efficiently the nozzle converts chamber pressure into thrust. A perfect nozzle at optimal expansion (exit pressure = ambient pressure) achieves:
+> Cf_ideal ≈ √[(2γ²/(γ-1)) × (2/(γ+1))^((γ+1)/(γ-1)) × (1 - (Pe/Pc)^((γ-1)/γ))] + (Pe-Pa)×Ae/(Pc×At)
+
+Typical values: Cf ≈ 1.3–1.7 for HPR motors
+
+**Expansion Ratio (ε = Ae/At):**
+- Higher ε → more expansion → higher exit velocity → higher Isp
+- Optimal ε depends on ambient pressure. At sea level: ε_opt ≈ 4–8 for most propellants
+- ε too high → over-expanded nozzle → Pe < Pa → thrust loss (oblique shocks in plume)
+- ε too low → under-expanded → some energy left in gas → thrust loss
+
+**Rule of thumb for HPR:**
+- ε = 4–6 is good for sea-level launches
+- ε = 8–15 if launching at altitude (lower ambient pressure)
+
+**Divergence loss (λ):**
+Conical nozzles lose ~1–3% thrust because gas exits at angles, not parallel to axis.
+> λ = (1 + cos α) / 2
+For half-angle α = 15°: λ = 0.983 (1.7% loss). Bell nozzles (curved) recover most of this.
+
+**Nozzle Materials:**
+| Material | Pro | Con |
+|---|---|---|
+| Graphite | Excellent heat resistance, self-lubricating | Brittle, erodes (throat grows) |
+| 4130 Steel | Strong, cheap | Needs ablative liner for long burns |
+| Carbon-Carbon | Lightest, strongest at temp | Extremely expensive |
+| Phenolic | Ablative, cheap | Throat erosion, dimensional change |
+
+**For HPR:** Graphite or steel with phenolic liner are most common. Throat erosion in graphite = Dt grows over burn → Kn drops → thrust drops at end (this is "nozzle erosion").
+
+**Throat erosion model:**
+> Dt(t) = Dt_0 + erosion_rate × t
+Erosion rate ≈ 0.01–0.05 mm/s depending on propellant and pressure. Use NEXUS's nozzle erosion tab to model this effect."""
+    },
+    {
+        "tags": ["barrowman","stability","cp","cg","center of pressure","center of gravity","static margin","fin","fin design","stability caliber","caliber margin","rocket stability","rocksim","openrocket","unstable","flip","weathercocking"],
+        "title": "Flight Stability — Barrowman Equations & CP/CG Margin",
+        "answer": """**A rocket is stable if and only if the Center of Pressure (CP) is BELOW the Center of Gravity (CG)** — meaning CP is further from the nose tip than CG. The bigger the gap, the more stable.
+
+**Static Margin = (CP - CG) / body_diameter** (in "calibers")
+- < 1.0 caliber: Unstable. Rocket will flip over in flight.
+- 1.0–2.0 calibers: Marginally stable. OK for slow rockets in calm air.
+- 2.0–3.0 calibers: Good stability. Target for most HPR designs.
+- > 4.0 calibers: Over-stable. Rocket will "weathercock" into wind — may arc over and fly horizontal.
+
+**The Barrowman Equations (simplified for finned rockets):**
+The CP location is calculated from the sum of aerodynamic normal forces on each component:
+
+For trapezoidal fins (4 fins):
+> CN_fin = (4 × n × (s/d)²) / (1 + √(1 + (2l_m/(Cr+Ct))²))
+
+where:
+- n = number of fins, s = semi-span, d = body diameter
+- l_m = fin mid-chord length, Cr = root chord, Ct = tip chord
+
+CP_body ≈ 0 for a cylinder (no normal force)
+CP_nose ≈ 0.67 × nose_length for an ogive, 0.5 × nose_length for a cone
+
+**The rocket equation for CP:**
+> X_CP = (sum of CN_i × X_i) / (sum of CN_i)
+
+**How to shift CG and CP:**
+- Move CP forward: Smaller fins, sweep fins forward, reduce fin span
+- Move CP aft: Larger fins, more fins, increase fin span, add tail ring
+- Move CG forward: Add nose weight (ballast), denser electronics bay
+- Move CG aft: Lighter nose, add base weight
+
+**Practical verification:**
+1. Calculate CP with Barrowman or OpenRocket/RASAero
+2. Build/weigh rocket with full propellant loaded → measure CG
+3. Swing test (pendulum): Tie string at CG — if rocket swings to horizontal, CP is aft of CG ✅
+4. Static margin should be 2–3 calibers with motor loaded
+
+**Warning:** CG moves FORWARD as propellant burns (propellant mass is aft). Check stability at both ignition (heaviest) and burnout (lightest propellant). Motor burnout is often the most critical stability point."""
+    },
+    {
+        "tags": ["erosive burning","port throat","j ratio","ab port","port area","core flow","turbulent","velocity","erosive","what is erosive","erosive burning risk","port to throat","j value","low j","j less than 2"],
+        "title": "Erosive Burning — Port-to-Throat Ratio & Prevention",
+        "answer": """**Erosive burning** is a phenomenon where high-velocity gas flowing through the grain core (port) turbulently strips the burning propellant surface, dramatically increasing the local burn rate beyond what Saint-Robert's law predicts.
+
+**Why it happens:**
+In a BATES grain, combustion gas flows from the forward end of the grain toward the nozzle. As combustion products accumulate, velocity in the port increases. When this flow is fast enough, it creates turbulent boundary layer effects that enhance heat transfer to the grain wall → higher burn rate than expected → higher mass flow → higher pressure → can cascade.
+
+**The Port-to-Throat Ratio (J = A_port / A_t):**
+> J = (π × ri²) / (π × (Dt/2)²) = ri² / (Dt/2)²
+
+- J ≥ 2.0: Flow velocity is low enough that erosive burning is negligible
+- J 1.5–2.0: Moderate erosive burning risk. Monitor for pressure spike at motor ignition.
+- J < 1.5: Significant erosive burning. Pressure and thrust will be higher than predicted, especially at start of burn.
+- J < 1.0: Severe erosive burning. Motor behavior is unpredictable. DO NOT FLY.
+
+**NEXUS displays Min J** — check this value after every simulation. If Min J < 2.0, a yellow warning appears.
+
+**How to fix low J:**
+1. **Increase inner radius (ri)** — larger core → larger A_port → higher J (most direct fix)
+2. **Reduce number of segments** — each segment has its own J; fewer segments = longer port per segment but each segment is independent
+3. **Increase throat diameter** — larger At → higher J (but also lower Kn → lower pressure → may need to rebalance)
+
+**Note:** J is worst (lowest) at the START of the burn (ri is smallest) and improves as the core burns out. NEXUS calculates minimum J across the entire burn — this is the critical value.
+
+**Erosion correlation (Lenoir-Robillard):**
+> r_erosive = r_base × (1 + k × (G^0.8 / Pc^0.2))
+where G = port mass flux (kg/m²·s). This is implicitly handled by the J guideline.
+
+**Ref:** Sutton & Biblarz §11.5; Nakka's rocketry technical reports"""
+    },
+    {
+        "tags": ["combustion instability","pressure oscillation","chugging","screaming","acoustic","l* instability","chuffing","bullfrog","oscillation","low frequency","high frequency","feed system instability","dc shift"],
+        "title": "Combustion Instability — Types and Mitigation",
+        "answer": """**Combustion instability** is any situation where chamber pressure oscillates significantly rather than remaining steady. At best it wastes performance; at worst it destroys the motor.
+
+**Three main categories:**
+
+**1. Low-Frequency (< 300 Hz) — "Chugging" or "Chuffing"**
+- Cause: Coupling between propellant feed/regression rate and chamber volume
+- In solid motors: propellant surface responds to pressure oscillations through burn rate (r = a·Pc^n). If n is too high (> 0.7), small pressure increase → rate increase → more gas → higher pressure → runaway (chuffing)
+- Detection: Audible low-frequency pulsing, pressure trace shows large slow oscillations
+- Fix: Use propellant with n < 0.5 (most APCP: n ≈ 0.3–0.45). Never let n → 1.0.
+
+**2. Intermediate Frequency (300–1000 Hz) — "Bulk Mode"**
+- Cause: Entire gas volume oscillating (Helmholtz resonance of the motor cavity)
+- L* instability: If the motor chamber length L* (V_chamber / A_throat) is too small, the residence time is insufficient for complete combustion → oscillations
+- L* guidelines: L* ≥ 1.0–1.5 m for APCP, ≥ 0.5 m for KNSB
+- Fix: Increase chamber volume, add baffles, change propellant particle size
+
+**3. High-Frequency (> 1000 Hz) — "Screaming"**
+- Cause: Acoustic resonance of combustion chamber — longitudinal, tangential, or radial modes
+- Most destructive: tangential modes can produce intense heat → rapid nozzle/grain failure
+- Characterized by: pressure oscillations ±30–100% of mean Pc, DC shift (mean pressure rises)
+- Fix: Add AP particle size bimodal distribution, add resonance rods, change chamber L/D ratio
+
+**For amateur HPR:**
+- Stick to propellants with n = 0.3–0.5 (KNSB n=0.32, APCP n=0.33)
+- Avoid very short fat motors (low L/D < 2) with high Kn → prone to chuffing
+- If pressure trace shows large oscillations: investigate n value and L/D
+
+**n > 0.7 is a design red flag** — monitor closely or reformulate.
+
+**Ref:** Sutton & Biblarz §9; Yang & Anderson "Liquid Rocket Engine Combustion Instability" (applies to solid variants)"""
+    },
+    {
+        "tags": ["temperature sensitivity","sigma p","cold temperature","hot temperature","burn rate temperature","environmental temperature","winter launch","summer launch","temperature coefficient","temperature effect"],
+        "title": "Temperature Sensitivity — σ_p and Environmental Effects",
+        "answer": """**Propellants burn faster in hot weather and slower in cold weather.** This directly affects chamber pressure, thrust, and motor class.
+
+**Temperature Sensitivity Coefficient (σ_p):**
+> r_T = r_ref × exp(σ_p × ΔT)
+
+where σ_p is in units of 1/°C (or %/°C), ΔT = T - T_ref (reference typically 20°C).
+
+**Typical σ_p values:**
+| Propellant | σ_p | Effect of +30°C |
+|---|---|---|
+| KNSB | 0.003 /°C | +9.4% burn rate |
+| KNSU | 0.004 /°C | +12.7% burn rate |
+| APCP (standard) | 0.002 /°C | +6.2% burn rate |
+| GAP-AP | 0.005 /°C | +16.2% burn rate |
+
+**Practical impact:**
+- **Hot summer day (+35°C vs 20°C reference):** Burn rate up ~10% → Kn up → Pc up → structural loads up
+- **Cold winter launch (-10°C vs 20°C reference):** Burn rate down ~9% → longer burn → more total impulse but less peak thrust
+- The effect on Pc is amplified by the exponent: ΔPc/Pc ≈ σ_p × ΔT / (1-n)
+  For KNSB (n=0.32) at +30°C: ΔPc/Pc ≈ 0.003×30/0.68 = **+13%** peak pressure increase
+
+**Design guideline:**
+- Size structural safety factor using worst-case **hot** temperature (highest Pc)
+- Verify ignition at worst-case **cold** temperature (may need longer/hotter igniter)
+- Check NEXUS Temperature Sensitivity tab for your specific design
+
+**Ref:** Sutton & Biblarz §12.3; Kubota §8.4"""
+    },
+    {
+        "tags": ["static fire","static test","thrust stand","load cell","daq","data acquisition","testing","test stand","how to test","test motor","fire test","test setup","pressure transducer","test rig"],
+        "title": "Static Fire Testing — Setup, DAQ, and Safety",
+        "answer": """**Static fire testing** (firing a motor while it's bolted down) is the only way to know if your motor actually performs as designed. Never fly an untested motor.
+
+**Minimum test setup:**
+
+**1. Thrust stand (force measurement)**
+- Horizontal or vertical frame that constrains the motor while transmitting force to a load cell
+- Load cell: strain-gauge type, rated to ≥ 2× expected peak thrust, sampled at ≥ 1 kHz
+- Material: 6061-T6 aluminum or welded steel. Bolt pattern must withstand max thrust + 4× safety factor
+- Alignment: Motor thrust axis must align with load cell axis to within 2°
+
+**2. Pressure transducer (chamber pressure)**
+- Piezo or piezoresistive type, 0–20 MPa range for typical HPR motors
+- Tap into forward end cap or nozzle boat via 1/8" NPT port
+- Sample at ≥ 1 kHz. Fast transients at ignition and burnout are diagnostically important.
+
+**3. Data Acquisition (DAQ)**
+- Minimum: Arduino + HX711 + SD card (low cost, 80 Hz max — adequate for slower burns)
+- Better: NI DAQ or similar, 1–10 kHz sampling, simultaneous thrust + pressure
+- Software: Python/MATLAB for post-processing, or RocketDAQ (free, open source)
+- Synchronize channels: record to same timestamp. Pressure and thrust must be co-registered.
+
+**4. Ignition system**
+- Electric match (e-match) or pyrogen igniter
+- Fire control: minimum 2 independent switches in series (arm + fire), at least 15 m from motor
+- Never stand downrange of the motor during static fire
+
+**5. Safety distances:**
+- Ground level clear area: 50 ft (15 m) radius minimum
+- Blast shield between you and motor during firing
+- Water source nearby for post-fire cooldown
+- Fire extinguisher rated for Class B/C fires
+
+**What to look for in data:**
+- Ignition delay: time from e-match fire to 5% peak thrust (should be < 0.5 s for HPR)
+- Thrust curve shape: matches simulation? Progressive / neutral / regressive as designed?
+- Pressure trace: smooth curve or oscillations? Oscillations → combustion instability
+- Burnout: clean cutoff or tail-off? Long tail-off = incomplete combustion or nozzle erosion
+- Compare measured It_Ns to simulated — within ±10% is good; ±5% is excellent
+
+**After firing:**
+- Wait 5 minutes before approaching motor (residual heat, possible deflagration of unburned propellant)
+- Inspect: nozzle erosion, casing deformation, O-ring condition, liner integrity
+- Weigh remaining casing to verify propellant mass consumed
+
+**Ref:** NAR Motor Testing Procedures; Nakka static test documentation (rocketry.burri.to)"""
+    },
+    {
+        "tags": ["nar","tra","certification","l1","l2","l3","high power","hpr certification","rso","flight card","waiver","level 1","level 2","level 3","experimental","ex","leup","atf","amateur rocketry","club","certify"],
+        "title": "NAR/TRA Certification — L1, L2, L3, and EX",
+        "answer": """**To fly HPR motors (H class and above), you must be certified.** Two organizations certify fliers in the US: NAR (National Association of Rocketry) and TRA (Tripoli Rocketry Association).
+
+---
+
+**Level 1 (L1) Certification:**
+- Required for: H and I motors (160–640 N·s)
+- Requirements: Build a rocket, fly it successfully on an H or I commercial motor, witnessed by a certified L2/L3 flier
+- No exam required. Just a successful flight witnessed by club members.
+- Allows purchase and use of H–I motors
+
+---
+
+**Level 2 (L2) Certification:**
+- Required for: J, K, and L motors (640–10,240 N·s)
+- Requirements: Pass the written L2 exam (100 questions, 80% to pass) + successful flight on a J–L motor
+- The exam covers aerodynamics, propulsion, safety, FAA regulations, range safety
+- Study material: NFPA 1127 Standard, club study guides available on NAR/TRA websites
+- Allows purchase and use of J–L motors
+
+---
+
+**Level 3 (L3) Certification:**
+- Required for: M, N, and O motors (10,240–163,840 N·s)
+- Requirements: Extensive — documented project proposal, detailed design review, witnessed static fire, and witnessed successful flight. Mentored by a L3-certified member.
+- Much more involved process — plan 6–12 months
+- Very rare — fewer than 2,000 L3 fliers exist in the US
+
+---
+
+**Experimental (EX) Certification:**
+- Required for: Making your own propellant (any class)
+- Requirements: L2 certified, member of TRA (NAR has a separate EX program), pass background check, manufacture under a registered Senior Pyrotechnician
+- Regulatory: ATF LEUP (Low Explosives User Permit) required to store propellant
+- DOT regulations apply to transport of propellant
+
+---
+
+**How to get certified:**
+1. Join NAR or TRA (annual dues ~$75–$85)
+2. Find a local club with a launch site (NAR/TRA have club finder tools)
+3. Attend a club launch — members will help guide you
+4. Build an L1 rocket following standard construction (no carbon fiber required, balsa fins are fine)
+5. Fly it, get it signed off, receive your certification card
+
+**Ref:** nar.org; tripoli.org; NFPA 1127"""
+    },
+    {
+        "tags": ["htpb","binder","polybutadiene","cure","curing agent","isocyanate","doi","r-45","mdi","tdi","cure ratio","ncoi","mechanical property","elongation","propellant mechanical","shore hardness"],
+        "title": "HTPB Binder — Chemistry, Cure, and Mechanical Properties",
+        "answer": """**HTPB (Hydroxyl-Terminated Polybutadiene)** is the rubber binder used in virtually all modern APCP propellants. It serves as both binder (holds everything together) and fuel (burns with the oxidizer).
+
+**Chemistry:**
+HTPB is a liquid polymer with –OH (hydroxyl) groups at both chain ends. The cure reaction:
+> –OH (from HTPB) + –NCO (from isocyanate) → urethane linkage (–NH–CO–O–)
+
+This crosslinks the liquid HTPB into a solid rubber matrix holding the AP and Al particles.
+
+**Isocyanate options:**
+| Curing agent | Notes |
+|---|---|
+| MDI (diphenylmethane diisocyanate) | Most common, solid at RT — need to melt first. Good performance. |
+| IPDI (isophorone diisocyanate) | Liquid, easier to handle. Slightly lower crosslink density. |
+| TDI (toluene diisocyanate) | Older formulations. More toxic, not recommended. |
+| Desmodur N-100 | Aliphatic HDI trimer. Excellent aging resistance. |
+
+**NCO/OH Ratio (R-value):**
+This is the critical formulation parameter:
+- R = moles NCO / moles OH
+- R = 0.80: Slightly under-cured. Softer, higher elongation, better adhesion to case
+- R = 0.85: Standard. Good balance of strength and elongation.
+- R = 1.00: Stoichiometric. Stiff, harder, more brittle — risk of grain cracking
+- For HPR: R = 0.80–0.85 is recommended
+
+**Cure schedule:**
+- Mix → cast into motor (or mandrel for case-bonded) → cure oven at 50–70°C
+- Cure time: 48–96 hours at 60°C for full crosslink (check gel time first with a small test batch)
+- Full mechanical properties develop in 7 days post-cure
+
+**Target mechanical properties (cured propellant):**
+- Elongation at break: ≥ 20% (prevents cracking during handling and thermal cycling)
+- Tensile strength: 0.5–1.2 MPa
+- Shore A hardness: 40–65
+- Too soft (Shore A < 30): may slump, hard to demold
+- Too hard (Shore A > 70): high cracking risk
+
+**Common additives:**
+- DOA (dioctyl adipate): Plasticizer — reduces hardness, increases elongation
+- Tepanol (bonding agent): Improves AP/HTPB adhesion — dramatically increases elongation
+- Iron oxide (Fe₂O₃): Burn rate catalyst — increases 'a' coefficient by 10–50%
+- Copper chromite: Burn rate modifier (plateau burning)
+
+**Ref:** Beckstead (1990) JANNAF proceedings; Sutton & Biblarz §12; TRA/NAR experimental propellant guides"""
+    },
+    {
+        "tags": ["burn rate measurement","strand burner","crawford bomb","vieille","coefficient a","exponent n","measure burn rate","determine burn rate","propellant characterization","burning rate test","pressure strand"],
+        "title": "Measuring Burn Rate — Strand Burner & Crawford Bomb",
+        "answer": """**To determine the Saint-Robert coefficients (a and n)** for a new propellant formulation, you need to measure burn rate at multiple pressures.
+
+**Methods:**
+
+**1. Strand Burner (simple, for amateurs):**
+- Cast a thin propellant strand (typically 3 mm × 3 mm × 50 mm)
+- Burn the strand at atmospheric pressure (1 atm) in a bomb with optionally elevated inert gas (N₂)
+- Measure time for flame front to travel a known distance using two chromel wires
+- Burn rate = distance / time
+- Repeat at multiple pressures (1–10 MPa) by pressurizing with N₂ before ignition
+
+**2. Crawford Bomb (standard laboratory method):**
+- High-pressure vessel (rated to 70+ MPa)
+- Strand suspended on nichrome wire supports, with optical or wire sensors for timing
+- Pressurized with N₂ to test pressure BEFORE ignition
+- Accurate to ±2% if strand density, dimensions, and timing are well-controlled
+- Industry standard for propellant characterization
+
+**Data analysis:**
+After measuring r at multiple Pc values, fit the Saint-Robert law:
+> r = a × Pc^n
+
+Take logarithm: log(r) = log(a) + n × log(Pc)
+This is a straight line on a log-log plot. Slope = n, intercept = log(a).
+
+**Common pitfall:** Burns must be run at a Pc representative of your motor's operating range. If you measure at 1–5 MPa but your motor runs at 8–12 MPa, extrapolation error can be significant (especially if the propellant has non-linear n in that range — called "mesa burn" or "plateau burn").
+
+**Amateur approach:**
+For most common propellants (KNSB, KNSU, APCP), measured a and n values are available from Nakka (sugar) and published literature (APCP). Use published values unless you've modified the formulation.
+
+**Ref:** Sutton & Biblarz §11.4; Nakka technical papers; JANNAF Combustion Subcommittee standards"""
+    },
+    {
+        "tags": ["nozzle erosion","throat erosion","throat growth","graphite erosion","erosion rate","nozzle throat","throat diameter change","ablative","ablation","throat wear"],
+        "title": "Nozzle Erosion — Throat Growth and Performance Impact",
+        "answer": """**Nozzle throat erosion** is the gradual increase in throat diameter during the burn, caused by hot combustion gases chemically and thermally attacking the nozzle material.
+
+**Mechanism:**
+- Combustion temperatures (2500–3500 K) far exceed melting points of most metals
+- Graphite oxidizes: C + CO₂ → 2CO (carbon monoxide)
+- At high pressure, the oxidation rate increases dramatically
+- Result: Dt grows over the burn → At increases → Kn decreases → Pc decreases → thrust decreases at burnout
+
+**Erosion rate (typical values):**
+| Material | Erosion rate |
+|---|---|
+| Graphite (extruded) | 0.03–0.15 mm/s |
+| Carbon-carbon composite | 0.005–0.02 mm/s |
+| Steel (with phenolic liner) | 0.01–0.05 mm/s |
+| Tungsten insert | 0.001–0.005 mm/s |
+
+**Effect on performance:**
+If Dt grows 10% over a 3-second burn:
+- At grows 21% (area goes as r²)
+- Kn drops 17% → Pc drops ≈ 17/(1-n) % → e.g., ~25% for n=0.32
+- Thrust drops proportionally
+
+**How to model it (NEXUS):**
+The nozzle erosion model in NEXUS applies:
+> Dt(t) = Dt_0 + ṙ_erosion × t
+Then recalculates At(t) at each time step.
+
+**How to minimize erosion:**
+1. Keep chamber pressure as low as structurally safe (lower Pc → less oxidative attack)
+2. Use denser graphite (extruded > molded > isotropic)
+3. Tungsten throat inserts for long-burn or high-pressure designs
+4. Carbon-phenolic for ablative (sacrificial) liner — liner ablates slowly, carrying heat away
+5. For KNSB/sugar propellants: erosion is less severe than APCP (no Al₂O₃ particle impact)
+
+**Design practice:** Size Dt based on END-of-burn Dt (after erosion), not initial. This way Kn starts lower and rises to design point as erosion occurs, rather than dropping below it."""
+    },
+    {
+        "tags": ["isp","specific impulse","exhaust velocity","ve","what is isp","thrust efficiency","propellant efficiency","performance metric","vacuum isp","sea level isp","isp formula","how isp works"],
+        "title": "Isp — Specific Impulse, The Master Performance Metric",
+        "answer": """**Isp (Specific Impulse)** is THE number that measures how efficiently a propellant produces thrust per unit mass consumed.
+
+**Definition:**
+> Isp = F / (ṁ × g₀)    [units: seconds]
+> Isp = Ve / g₀    [Ve = effective exhaust velocity, m/s]
+
+**Plain English:** If Isp = 200 s, then 1 kg of propellant burned per second produces 200 × 9.81 = 1962 N of thrust. Higher Isp = more thrust per unit propellant consumed = more efficient.
+
+**Why Isp is in SECONDS:**
+This is thrust (N) ÷ weight flow (N/s) — the "seconds" come from the g₀ normalization. It's the number of seconds you can produce 1 lbf of thrust from 1 lb of propellant. Units cancel universally regardless of measurement system.
+
+**Sea level vs vacuum Isp:**
+- **Vacuum Isp:** Measured in space (Pe = 0, no ambient back-pressure). Higher value. Used for upper stages.
+- **Sea level Isp:** Measured at 1 atm. Lower value (ambient back-pressure opposes exit flow).
+- Difference: typically 10–20 s for HPR nozzle expansion ratios
+
+**The rocket equation — why Isp matters so much:**
+> ΔV = Isp × g₀ × ln(m₀/mf)
+Doubling Isp = doubling the effective "exchange rate" between propellant and ΔV. This is why liquid hydrogen/LOX (Isp ≈ 450 s) reaches orbit but KNSB (Isp ≈ 130 s) cannot — even if you had infinite KNSB.
+
+**Typical Isp values:**
+| Propellant | Isp_sl (s) | Isp_vac (s) |
+|---|---|---|
+| KNSB | 130–140 | 163 |
+| KNSU | 135–145 | 165 |
+| APCP Standard | 200–220 | 235–242 |
+| APCP Metal-Free | 190–205 | 218–228 |
+| GAP-AP | 220–240 | 255–270 |
+| Kerosene/LOX | 290–310 | 340–360 |
+| LH2/LOX | 390–425 | 450–470 |
+
+**Isp efficiency chain in NEXUS:**
+> Isp_displayed = Isp_vac_theoretical × (Pc_ratio_SL_correction) × η_DP
+The η_c\\* efficiency affects Pc (and thus thrust/mass flow) but not Isp directly."""
+    },
+    {
+        "tags": ["apcp formulation","propellant formulation","ap particle size","bimodal","coarse ap","fine ap","particle distribution","oxidizer particle","mixing","propellant mix","formulate","ap size","ammonium perchlorate size"],
+        "title": "APCP Formulation — AP Particle Size, Bimodal Packing & Optimization",
+        "answer": """**APCP formulation** is the art and science of choosing the exact mass fractions and particle sizes to hit target burn rate, Isp, mechanical properties, and safety margin simultaneously.
+
+**The four main ingredients:**
+| Ingredient | Role | Typical % |
+|---|---|---|
+| NH₄ClO₄ (AP) | Oxidizer — provides oxygen for combustion | 65–72% |
+| HTPB | Binder + fuel | 12–20% |
+| Aluminum powder | High-energy fuel, raises Tf by ~800 K | 0–20% |
+| Additives | Cure agents, burn rate mods, bonding agents | 1–5% |
+
+**AP Particle Size Effects:**
+- Larger AP particles → SLOWER burn rate (less surface area for reaction)
+- Finer AP → FASTER burn rate, but harder to handle (more static sensitive)
+- Coarse AP: 200–400 μm — provides structural framework
+- Fine AP: 5–20 μm — fills gaps, controls burn rate
+
+**Bimodal distribution (the "secret sauce" for high-performance APCP):**
+By using two AP particle sizes (e.g., 200 μm coarse + 20 μm fine), you achieve:
+1. **Higher packing density:** Fine particles fill voids between coarse → ρ from 1750 → 1900 kg/m³
+2. **Higher burn rate:** Fine AP contributes disproportionately to reaction rate
+3. **Better mechanical properties:** Bimodal mix distributes stress more uniformly
+
+Typical bimodal ratio: 80% coarse / 20% fine (by AP mass)
+Or trimodal: 60% coarse / 30% medium / 10% fine
+
+**Aluminum loading optimization:**
+- 0% Al: Isp_vac ≈ 215 s, ρ = 1720 kg/m³ — cleaner burn
+- 12% Al: Isp_vac ≈ 242 s, ρ = 1840 kg/m³ — standard
+- 20% Al: Isp_vac ≈ 248 s, ρ = 1900 kg/m³ — diminishing returns, more Al₂O₃ slag
+- Optimal is usually 14–18% Al for maximum density-specific impulse (ρ × Isp)
+
+**Burn rate modifiers:**
+- Fe₂O₃ (iron oxide): +20–50% burn rate at 1–3% loading
+- Copper chromite: Creates "plateau" region (nearly constant burn rate over pressure range)
+- Carbon black: Slight decrease in burn rate, improves conductivity
+
+**Key formulation constraint:** Total = 100%. Every point of AP reduction must go somewhere else. The design space is a 3D optimization over Isp, ρ, mechanical properties.
+
+**Ref:** Kubota §4; Davenas (1993) "Solid Rocket Propulsion Technology" §6"""
+    },
+    {
+        "tags": ["propellant density","specific gravity","density","rho","grain density","loading density","mass","propellant mass","grain mass","propellant weight"],
+        "title": "Propellant Density — Why It Matters for Motor Design",
+        "answer": """**Propellant density (ρ, kg/m³)** determines how much propellant mass fits in a given volume, directly affecting total impulse and motor class.
+
+**Propellant mass in a BATES motor:**
+> m_prop = ρ × π × (ro² - ri²) × L × n_segments
+
+If you switch from KNSB (ρ=1841) to APCP (ρ=1840), mass is essentially the same. But if you switch to a denser formulation, you get more propellant in the same envelope.
+
+**Density-specific impulse:**
+A propellant's mass efficiency is captured by **ρ × Isp** (kg·s/m³):
+| Propellant | ρ (kg/m³) | Isp_vac (s) | ρ×Isp |
+|---|---|---|---|
+| KNSB | 1841 | 163 | 300,083 |
+| APCP Standard | 1840 | 242 | 445,280 |
+| APCP Hi-Al | 1900 | 248 | 471,200 |
+| LH2/LOX | 360 (avg) | 460 | 165,600 |
+
+Note: LH2/LOX has high Isp but very low density — you need huge tanks. APCP's density advantage is why solid motors are compact and simple for HPR.
+
+**Theoretical Maximum Density (TMD):**
+The density a propellant would have with zero voids. Actual cast density is typically 0.95–0.99 × TMD. Voids (porosity) cause:
+- Hot spot ignition during deflagration → potential detonation transition
+- Reduced structural strength
+- Lower burn rate predictability
+
+**Achieving high density in practice:**
+- Slow mixing in vacuum mixer (removes air bubbles)
+- Careful particle sizing (bimodal/trimodal AP)
+- Minimum HTPB content while maintaining adequate elongation
+- Vibrate mold or centrifuge after casting (industrial only)"""
+    },
+    {
+        "tags": ["drag","cd","drag coefficient","ballistic coefficient","bc","body diameter","fineness ratio","nose cone","body drag","fin drag","base drag","wave drag","aerodynamics","altitude prediction"],
+        "title": "Drag & Ballistic Coefficient — Altitude Prediction",
+        "answer": """**Drag (D)** is the aerodynamic force opposing rocket motion, limiting peak velocity and maximum altitude.
+
+> D = ½ × ρ_air × V² × Cd × A_ref
+
+where:
+- ρ_air = air density (ISA atmosphere)
+- V = velocity
+- Cd = drag coefficient (dimensionless)
+- A_ref = reference area = π × (body_diameter/2)²
+
+**Typical Cd values for amateur rockets:**
+| Configuration | Cd |
+|---|---|
+| Long, thin rocket (fineness ratio > 10) | 0.35–0.45 |
+| Standard HPR (fineness ratio 6–10) | 0.45–0.60 |
+| Stubby rocket (fineness ratio < 5) | 0.60–0.85 |
+| Estes-style model rocket | 0.55–0.75 |
+
+**Cd is NOT constant** — it varies with Mach number. Transonic (Mach 0.8–1.2) sees up to 3× the subsonic Cd due to wave drag. For low-power rockets staying subsonic, a constant Cd of 0.6 is a reasonable approximation. For HPR near Mach 1, use RASAero or OpenRocket for accurate Cd modeling.
+
+**Ballistic Coefficient (BC):**
+> BC = m / (Cd × A_ref)    [kg/m²]
+
+Higher BC = rocket coasts further after burnout. Heavy, streamlined rockets with small cross-sections have high BC. Altitude ∝ BC for coast phase.
+
+**Altitude prediction (simple):**
+1. At burnout: know velocity V_bo and altitude h_bo from NEXUS flight trajectory
+2. Coast phase: solve `dV/dt = -g - (ρ_air × Cd × A / 2m) × V²` numerically
+3. Apogee when V = 0
+
+NEXUS Flight Trajectory tab does this for you using 1D Euler integration with ISA atmosphere.
+
+**Nose cone drag contributions:**
+- Von Kármán ogive: Cd_nose ≈ 0.10–0.15 (best subsonic)
+- 3:1 ogive: Cd_nose ≈ 0.12–0.18
+- Conical: Cd_nose ≈ 0.20–0.30 (worse, but simple to make)
+- Blunt/flat: Cd_nose ≈ 0.50+ (terrible)
+
+**Base drag:** The low-pressure wake behind the motor contributes 0.15–0.25 to Cd — often the largest single drag source at low speed. Boat-tail nozzle closures reduce this."""
+    },
+    {
+        "tags": ["rocket equation","tsiolkovsky","delta v","mass ratio","mass fraction","structural mass","dry mass","wet mass","payload fraction","staging","multistage","two stage"],
+        "title": "The Rocket Equation — ΔV, Mass Ratio, and Staging",
+        "answer": """**The Tsiolkovsky Rocket Equation** is the most important equation in rocketry:
+
+> **ΔV = Isp × g₀ × ln(m₀ / m_f)**
+
+Where:
+- ΔV = change in velocity (m/s) — what you're buying
+- Isp = specific impulse (s)
+- g₀ = 9.81 m/s²
+- m₀ = initial (wet) mass including propellant (kg)
+- m_f = final (dry) mass after propellant is consumed (kg)
+- m₀/m_f = **mass ratio** (MR)
+
+**What it means:**
+Every propellant and rocket combination has a maximum ΔV. You can't exceed it regardless of how you fire the motor. More ΔV comes from:
+1. **Higher Isp** (better propellant)
+2. **Higher mass ratio** (more propellant relative to dry mass)
+
+**Mass ratio examples:**
+| m₀/m_f | ln(MR) | ΔV with Isp=200s |
+|---|---|---|
+| 2.0 | 0.693 | 1,360 m/s |
+| 4.0 | 1.386 | 2,720 m/s |
+| 8.0 | 2.079 | 4,075 m/s |
+| 10.0 | 2.303 | 4,515 m/s |
+
+**Staging multiplies ΔV:**
+Instead of one 10:1 mass ratio rocket, use two 3.16:1 stages:
+- Each stage: ΔV = 200×9.81×ln(3.16) = 2,274 m/s
+- Total 2-stage ΔV = 4,547 m/s — nearly identical, but each stage is much smaller and simpler to build
+
+**For HPR altitude prediction:**
+Most HPR rockets don't approach orbital ΔV, but the equation still tells you the fundamental limit. The flight trajectory simulation (using Euler integration with drag and gravity) is more practical for altitude prediction, but the rocket equation gives you the theoretical ceiling.
+
+**Structural efficiency:**
+The "hidden" efficiency metric is structural mass fraction (m_dry_structure / m_0). A lighter casing, nozzle, and recovery system all lower m_f, increasing mass ratio. This is why carbon fiber airframes can reach dramatically higher altitudes than fiberglass on the same motor."""
+    },
+    {
+        "tags": ["learning path","how to learn","study rocketry","rocketry curriculum","beginner path","intermediate rocketry","advanced rocketry","resources","books","references","nakka","sutton","what to read","learn propulsion"],
+        "title": "Rocketry Learning Path — Beginner to World-Class",
+        "answer": """**Beginner Level (0–2 years):**
+
+*Goal: Build and fly a NAR L1 certified rocket safely.*
+
+1. **Start with model rocketry** — Estes kits teach assembly, stability, recovery without the risk
+2. **Read:** Stine & Stine "Handbook of Model Rocketry" (8th ed.) — the definitive beginner reference
+3. **Build:** 2–3 kit rockets. Then design a scratch-built L1 rocket in OpenRocket.
+4. **Learn:** Basic aerodynamics (CP/CG), propellant safety, FAA regulations
+5. **Tools:** OpenRocket (free flight sim), NEXUS (motor simulation)
+6. **Get L1 certified** — fly on a commercial H or I motor, witnessed by club members
+
+---
+
+**Intermediate Level (2–5 years):**
+
+*Goal: Design and fly your own motor. Get L2 certified.*
+
+1. **Study:** Richard Nakka's website (rocketry.burri.to) — best practical resource for sugar propellants
+2. **Make:** KNSB propellant (after mentorship from an experienced EX flier)
+3. **Test:** Build a static fire rig. Test every motor before flight.
+4. **Read:** Sutton & Biblarz "Rocket Propulsion Elements" (9th ed.) — the standard textbook
+5. **Get L2 certified** — pass the exam, fly on a J–L motor
+6. **Advance:** Design BATES grains with NEXUS, validate against static fire data
+
+---
+
+**Advanced Level (5–10 years):**
+
+*Goal: Design complete motor systems. Contribute to the community.*
+
+1. **Read:** Kubota "Propellants and Explosives" — propellant chemistry depth
+2. **Read:** Davenas "Solid Rocket Propulsion Technology" — engineering depth
+3. **Master:** APCP formulation, burn rate measurement, structural analysis
+4. **Study:** Barrowman equations, CFD basics, RASAero for transonic flight modeling
+5. **Build:** Instrumented test stand with pressure + thrust + video recording
+6. **Get L3 certified** — design a complete motor+rocket system from first principles
+
+---
+
+**Expert/Research Level:**
+
+*Goal: Push performance boundaries. Publish. Mentor others.*
+
+1. **Read:** JANNAF Propulsion Committee conference proceedings
+2. **Read:** AIAA Journal of Propulsion and Power (peer-reviewed)
+3. **Study:** Combustion instability theory (Yang & Anderson), two-phase flow (Kuo & Summerfield)
+4. **Explore:** Novel propellant formulations (GAP-AP, AN-based), nozzle aerodynamics (MOC)
+5. **Contribute:** Static fire data to ThrustCurve.org, mentor new L1 fliers at club launches
+6. **Collaborate:** IREC (Intercollegiate Rocket Engineering Competition) or Spaceport America Cup for team-based research rockets
+
+---
+
+**Core reference shelf:**
+- Sutton & Biblarz (2016) — propulsion fundamentals
+- Kubota (2007) — propellant chemistry
+- Nakka's website — practical amateur motor design
+- NFPA 1127 — safety regulations
+- OpenRocket + NEXUS — simulation tools"""
+    },
+    {
+        "tags": ["propellant comparison","propellant vs","knsb vs apcp","which propellant","best propellant","choose propellant","propellant selection","sugar vs apcp","apcp vs knsb","compare propellant"],
+        "title": "Propellant Comparison — Which to Choose and When",
+        "answer": """**Head-to-head comparison of the propellants in NEXUS:**
+
+| Property | KNSB | KNSU | APCP Std | APCP-NoAl | GAP-AP |
+|---|---|---|---|---|---|
+| Isp_vac (s) | 163 | 165 | 242 | 228 | 265 |
+| Flame temp (K) | 1609 | 1720 | 3350 | 2870 | 3100 |
+| Density (kg/m³) | 1841 | 1750 | 1840 | 1720 | 1780 |
+| Burn rate a | 8.26 | 9.40 | 5.13 | 4.20 | 12.0 |
+| n exponent | 0.319 | 0.318 | 0.328 | 0.335 | 0.402 |
+| Processing | Melt-cast 95°C | Melt-cast 185°C | Cure 60°C / 7 days | Cure 60°C / 7 days | Cure + hazmat |
+| Difficulty | ⭐ Beginner | ⭐⭐ Beginner+ | ⭐⭐⭐⭐ Advanced | ⭐⭐⭐⭐ Advanced | ⭐⭐⭐⭐⭐ Expert |
+| Regulatory | None | None | ATF LEUP | ATF LEUP | ATF LEUP |
+| Smoke | White/grey | White/grey | White (Al₂O₃) | Low smoke | Minimal |
+
+**When to choose each:**
+
+**KNSB** — First propellant for anyone making their own motors. Safe, forgiving, well-documented. Great for L1/L2 EX flights. Use for I–J class motors.
+
+**KNSU** — Nearly identical to KNSB but slightly better performance. Use if you want marginally more impulse and can manage the higher processing temp. Good for KNSB-experienced makers.
+
+**APCP Standard** — When you need maximum performance and have the facility, permit, and experience. 50% more Isp than sugar. The propellant in every commercial HPR motor you've ever used.
+
+**APCP Metal-Free** — When smoke or signature matters. Slightly lower performance than standard APCP but cleaner exhaust. Good for research motors, drone propulsion.
+
+**GAP-AP** — Research/specialist use only. Highest burn rate among options — useful for compact high-thrust designs. Requires full hazmat facility. Do NOT start here.
+
+**Summary: Start with KNSB. Graduate to APCP after 2+ years of experience and certification.**"""
+    },
+    {
+        "tags": ["what is a rocket","rocket basics","how does a rocket work","newton third law","thrust","how thrust","action reaction","rocket physics","conservation momentum","propulsion basics","rocket motor vs engine"],
+        "title": "Rocket Basics — How Rockets Work (Newton's Laws)",
+        "answer": """**How a rocket works — from first principles:**
+
+**Newton's Third Law: Every action has an equal and opposite reaction.**
+
+A rocket ejects mass (hot combustion gas) backward at high velocity. The reaction force pushes the rocket forward. There's no "pushing against the air" — rockets work perfectly in vacuum, and actually work BETTER in vacuum because there's no atmospheric back-pressure opposing gas flow.
+
+**Thrust equation:**
+> F = ṁ × Ve + (Pe - Pa) × Ae
+
+Where:
+- ṁ = mass flow rate of exhaust (kg/s)
+- Ve = exhaust velocity (m/s)
+- Pe = exit pressure of nozzle (Pa)
+- Pa = ambient pressure (Pa)
+- Ae = nozzle exit area (m²)
+
+The second term (pressure thrust) is small at sea level but significant in vacuum — it's why rockets are more efficient in space.
+
+**Motor vs Engine:**
+By convention in rocketry:
+- **Motor** = solid propellant device (self-contained, no pumps)
+- **Engine** = liquid propellant device (pumps, tanks, turbomachinery)
+
+You build a SOLID ROCKET MOTOR. SpaceX has ENGINES.
+
+**The three ways to increase thrust:**
+1. Increase ṁ (burn propellant faster — bigger grain, higher Kn)
+2. Increase Ve (better propellant — higher Isp)
+3. Optimize nozzle design (proper expansion ratio for ambient pressure)
+
+**For a rocket to lift off:** Thrust must exceed weight. If your rocket weighs 100 N and motor produces 80 N average thrust — it won't lift off. Rule of thumb: **thrust-to-weight ratio ≥ 5:1** at launch for a stable flight."""
+    },
+    {
+        "tags": ["motor scaling","scaling law","scale motor","bigger motor","smaller motor","geometric scaling","scale up","scale down","throat area scaling","dimensional analysis","similitude"],
+        "title": "Motor Scaling Laws — How to Scale Up or Down a Design",
+        "answer": """**Geometric similitude** — if you scale all linear dimensions by a factor k, here's what happens to the motor performance:
+
+**Scaling rules (multiply by k):**
+| Parameter | Scale factor |
+|---|---|
+| All linear dimensions (ro, ri, L, Dt, De) | k |
+| All areas (Ab, At, Ae) | k² |
+| All volumes | k³ |
+| Propellant mass | k³ |
+| Thrust | k² (because F ∝ Pc × At and At ∝ k²) |
+| Burn time | k (longer burn time at same scale) |
+| Total impulse | k³ (because It = F × tb ∝ k² × k) |
+| Kn | k⁰ = 1 (INVARIANT — Kn = Ab/At scales as k²/k² = 1) |
+| Chamber pressure | k⁰ = 1 (INVARIANT — Kn is same → Pc is same) |
+| Average Isp | k⁰ = 1 (INVARIANT — propellant and pressure same) |
+| Burn rate | k⁰ = 1 (INVARIANT — same propellant, same Pc) |
+
+**This is the key insight:** When you scale geometrically, **Kn, Pc, and burn rate are all preserved**. Only thrust, total impulse, and mass scale with geometry.
+
+**Practical scaling:**
+If you want to go from an H motor to a J motor (4× the total impulse):
+- You need k³ = 4 → k = 4^(1/3) = 1.587
+- Scale all linear dimensions by 1.587 (so ro goes from 25→40 mm, Dt from 8→12.7 mm, etc.)
+- Throat area scales by k² = 2.52 — which is exactly what's needed to keep Kn constant
+
+**What doesn't scale perfectly:**
+- Wall thickness: structural pressure loads are the same → same Pc → same required wall thickness. But scaling gives k × wall_0 which may over-engineer the structure
+- Erosive burning: J = (ri/Dt)² × (Dt_throat/ri)² — J changes differently if not all dimensions scale the same
+- Heat flux to nozzle: scales as Pc/Dt, so same Pc but larger Dt → less heat flux → less erosion at larger scale
+
+**Ref:** Sutton & Biblarz §15.2 (scaling and similarity)"""
+    },
+    {
+        "tags": ["flight path","trajectory","altitude","velocity","apogee","burnout","coast","descent","parachute","recovery","deploy","ejection charge","altimeter","max altitude","how high"],
+        "title": "Flight Trajectory — From Launch to Recovery",
+        "answer": """**A typical HPR flight has 5 phases:**
+
+**1. Boost Phase (motor burning)**
+- Thrust > Drag + Gravity → rocket accelerates
+- Peak acceleration typically occurs near end of burn (max thrust)
+- Burnout altitude depends on average thrust and burn time
+- NEXUS Flight tab shows velocity and altitude during boost
+
+**2. Coast Phase (motor burned out, rocket still climbing)**
+- Thrust = 0, gravity + drag decelerate rocket
+- This is often where the rocket reaches peak velocity (for some short fast motors, peak V is near burnout)
+- Coast time depends on burnout velocity and ballistic coefficient
+- Time-to-apogee from burnout = V_bo / g (simplified, ignoring drag)
+
+**3. Apogee (peak altitude)**
+- Velocity = 0 momentarily
+- Recovery system should deploy HERE (apogee deployment is safest)
+- Motor ejection charge timing: tb + coast_delay = time to apogee
+- Electronic altimeters (Perfectflite, Featherweight, Stratologger) detect apogee via barometric pressure
+
+**4. Descent (parachute deployed)**
+- Drogue chute: small chute for high-altitude deployment, keeps rocket streamlined but falling fast (~20 m/s)
+- Main chute: large chute for low-altitude deployment (below 450 m / 1500 ft), slows to landing speed (~5–8 m/s)
+- Dual-deployment requires 2 electronic altimeters (redundancy rule at most clubs)
+
+**5. Landing**
+- Target: < 6 m/s landing velocity (any faster risks structural damage)
+- Recovery area: plan for wind drift. 10 mph wind × 60 s descent = ~270 m downwind from apogee point
+
+**Ejection charge sizing:**
+Black powder ejection charges: Start with 0.6 g/L of air volume in the recovery bay. Static test on the ground by plugging the nozzle and firing the charge — nosecone should pop off cleanly.
+
+**NEXUS shows:** burnout velocity, burnout altitude, apogee altitude, coast time, total flight time — all in the Flight Trajectory tab."""
+    },
+    {
+        "tags": ["casing","motor tube","phenolic","fiberglass case","aluminum case","steel case","reloadable","reusable","single use","aft closure","forward closure","bulkhead","liner","thermal liner","case liner"],
+        "title": "Motor Casing Design — Materials, Closures, and Liners",
+        "answer": """**The motor casing** is the pressure vessel that contains the burning propellant. It must:
+1. Withstand peak chamber pressure with adequate safety factor (SF ≥ 4)
+2. Survive thermal loads (propellant burns at 1600–3350 K)
+3. Seal properly (no gas leakage around closures)
+4. Be light enough not to kill your mass ratio
+
+---
+
+**Casing material selection:**
+
+**6061-T6 Aluminum (most common for HPR):**
+- Sy = 276 MPa, ρ = 2700 kg/m³
+- Good up to ~10 MPa chamber pressure with 3–4 mm wall
+- NOT suitable for temperatures > 150°C (softens) — needs good thermal liner
+- Easy to machine, widely available as schedule-40 pipe
+
+**4130 Chromoly Steel:**
+- Sy = 435 MPa, ρ = 7850 kg/m³
+- Handles higher pressures (up to 20+ MPa) with thinner walls
+- Heavy — 3× denser than aluminum. Use when strength is critical.
+- Best for APCP at high Kn or when aluminum SF is marginal
+
+**Carbon Fiber / Epoxy Composite:**
+- Specific strength superior to both metals
+- Complex to manufacture — requires filament winding or prepreg layup
+- Excellent for minimum-mass motor casings
+- Used in commercial HPR motors (Cesaroni 98mm casing, etc.)
+
+---
+
+**Closure design:**
+- **Forward closure (head end):** typically threaded or O-ring sealed bulkhead. Contains igniter port and pressure tap.
+- **Aft closure (nozzle boat):** Retains nozzle and transfers thrust to airframe. Critical sealing point.
+- **O-rings:** Buna-N for standard HPR temps. Viton for high-temp/APCP. Size per Parker O-Ring Handbook.
+- **Retention:** Snap ring, threaded closure, or retained by motor mount (for commercial casings)
+
+---
+
+**Thermal liner:**
+- Protects casing from hot combustion gases
+- Materials: phenolic paper (0.8–1.5 mm thick), EPDM rubber, silicone
+- Liner must be adhesive-bonded to casing interior — gaps allow hot gas "channeling" which can erode liner rapidly
+- For sugar propellants: phenolic liner optional but recommended for >5s burn times
+- For APCP: liner is mandatory (Tf ≈ 3350K vs Al melting point of 660°C)
+
+**Common failure mode:** Liner delamination during burn → hot gas bypass → rapid casing heating → structural failure. Always inspect liner before loading."""
+    },
 ]
 
 
@@ -2947,7 +4106,9 @@ _INTENTS = {
     ],
     'explain': [
         'what is', 'what are', 'explain', 'define', 'tell me about', 'describe',
-        'how does', 'why does', 'what does', 'mean', 'stands for',
+        'how does', 'why does', 'what does', 'mean', 'stands for', 'how to make',
+        'how to design', 'how to build', 'how to test', 'teach me', 'learn about',
+        'how do i learn', 'learning path', 'study', 'understand',
     ],
 }
 
@@ -2960,6 +4121,24 @@ _PROP_ALIASES = {
     'metal-free': 'APCP_NOAL', 'no aluminum': 'APCP_NOAL', 'apcp no al': 'APCP_NOAL',
     'gap': 'GAP_AP', 'gap ap': 'GAP_AP', 'gap-ap': 'GAP_AP', 'energetic': 'GAP_AP',
 }
+
+
+def _detect_level(q: str) -> str:
+    """Detect user experience level from query language."""
+    expert_words = ['barrowman','tsiolkovsky','similitude','l-star','dc shift','screaming','chuffing',
+                    'bimodal','ncoi','r-value','htpb','tepanol','lre','moc','method of characteristics',
+                    'two-phase','erosive burning model','lenoir','hlg','volumetric loading','finocyl',
+                    'crawford bomb','jannaf','thermite','gap-ap','trimidal','sigma_p','burn rate measurement',
+                    'van krevelen','specific impulse derivation','turbopump','expander cycle']
+    beginner_words = ['what is','how does','explain','i am new','first time','dont know','beginner',
+                      'just starting','confused','what does','simple','basics','how do i start',
+                      'how to build','never made','never flown','first rocket']
+    q_lower = q.lower()
+    if any(w in q_lower for w in expert_words):
+        return 'expert'
+    if any(w in q_lower for w in beginner_words):
+        return 'beginner'
+    return 'intermediate'
 
 
 def _detect_intent(q: str) -> str:
@@ -3132,9 +4311,24 @@ def _kb_search(query: str, active_prop_abbr: str = '', res: dict | None = None, 
             best, best_score = entry, score
 
     if best and best_score >= 2:
-        return best
+        # Append level-specific tip to the answer
+        level = _detect_level(q)
+        answer = best["answer"]
+        if level == 'beginner' and '**Ref:**' in answer:
+            answer = answer + "\n\n---\n*New to rocketry? Ask me: \"How do I get started?\" or \"What is a good first propellant?\"*"
+        elif level == 'expert':
+            answer = answer + "\n\n---\n*Want to go deeper? Ask about HLG design, bimodal AP formulation, combustion instability theory, or motor scaling laws.*"
+        return {"title": best["title"], "answer": answer, "tags": best.get("tags", [])}
 
     # 5. Fallback with helpful menu
+    level = _detect_level(q)
+    if level == 'beginner':
+        extra = "\n\n**👋 Looks like you're getting started!** Try: *\"How do I get started?\"* or *\"What is KNSB?\"*"
+    elif level == 'expert':
+        extra = "\n\n**🔬 Advanced topics:** `HLG design` · `bimodal AP` · `combustion instability` · `motor scaling laws` · `HTPB cure chemistry` · `barrowman equations` · `static fire testing` · `nozzle erosion model` · `burn rate measurement`"
+    else:
+        extra = ""
+
     return {
         "title": "Ask me anything about rocketry!",
         "answer": f"""I didn't catch exactly what you meant by *"{query}"* — here are things I know well:
@@ -3145,11 +4339,23 @@ def _kb_search(query: str, active_prop_abbr: str = '', res: dict | None = None, 
 - *"Why is my Kn too high?"* — I'll analyze your live simulation
 - *"How do I increase thrust?"* — troubleshooting with your current numbers
 
-**📖 Concepts I can explain:**
-`c-star` · `Isp` · `Kn / klemmung` · `burn rate` · `a and n coefficients` · `BATES grain` · `KNSB` · `APCP` · `dispersion (η_DP)` · `port-to-throat ratio` · `safety factor` · `hoop stress` · `expansion ratio` · `motor class` · `total impulse` · `neutral burn` · `progressive burn` · `decomposition temperature` · `.ENG file` · `gamma` · `O/F ratio`
+**📖 Core concepts:**
+`c-star` · `Isp` · `Kn / klemmung` · `burn rate` · `a and n coefficients` · `BATES grain` · `KNSB` · `APCP` · `dispersion (η_DP)` · `port-to-throat ratio` · `safety factor` · `hoop stress` · `expansion ratio` · `motor class` · `total impulse` · `neutral/progressive/regressive burn` · `decomposition temperature` · `.ENG file` · `gamma` · `O/F ratio`
+
+**🚀 Propulsion & design:**
+`HLG (Highly Loaded Grain)` · `grain geometries` · `nozzle design (de Laval)` · `thrust coefficient Cf` · `nozzle erosion` · `erosive burning` · `combustion instability` · `temperature sensitivity` · `propellant density` · `motor scaling laws` · `rocket equation`
+
+**🛩️ Flight & certification:**
+`flight stability (Barrowman)` · `drag coefficient` · `ballistic coefficient` · `flight trajectory` · `NAR/TRA certification L1/L2/L3` · `static fire testing` · `motor casing design`
+
+**🔬 Chemistry & formulation:**
+`HTPB binder chemistry` · `APCP formulation` · `bimodal AP` · `burn rate measurement` · `propellant comparison`
+
+**📚 Learning:**
+`rocketry learning path` · `how to start rocketry`
 
 **🔧 Troubleshooting — just describe the problem:**
-*"My safety factor is too low"* · *"Kn keeps spiking"* · *"burn time too short"* · *"pressure too high"*
+*"My safety factor is too low"* · *"Kn keeps spiking"* · *"burn time too short"* · *"pressure too high"*{extra}
 """
     }
 
@@ -3158,12 +4364,11 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
     active_prop = (_prop or prop)
     active_prop_abbr = active_prop.abbr if active_prop else ''
 
-    st.markdown('<div class="nexus-section">🤖 NEXUS Expert — Ask Anything</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nexus-section">AI Mentor</div>', unsafe_allow_html=True)
     st.markdown(f"""
 <div class="nexus-card" style="padding:0.9rem 1.2rem; margin-bottom:1rem; border-color:#1a3a60;">
 <div style="font-family:Share Tech Mono,monospace; font-size:0.8rem; color:#a0aec0; line-height:1.7;">
-  💬 <strong style="color:#00d4ff;">Ask in plain English</strong> — no API key, no internet needed. I know your simulation live.<br>
-  Try: <em>"Recommend parameters for APCP-NoAl"</em> · <em>"Why is my Kn too high?"</em> · <em>"What is c-star?"</em> · <em>"How do I improve my safety factor?"</em>
+  Ask anything — propellant chemistry, grain design, HLG technology, nozzle theory, flight stability, certification, static fire testing, or just "how do I get started." I have your live simulation data loaded and can troubleshoot specific numbers in real time.
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -3173,22 +4378,22 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
         sf_col = "🟢" if strct and strct['SF_yield'] >= 4 else "🟡" if strct and strct['SF_yield'] >= 2 else "🔴"
         st.markdown(f"""
 <div style="background:rgba(0,212,255,0.06); border:1px solid #1a3a60; border-radius:8px; padding:0.7rem 1.1rem; margin-bottom:1rem; font-family:Share Tech Mono,monospace; font-size:0.78rem; color:#a0d8ef;">
-📊 <strong>Active sim:</strong> {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · It = {res['total_impulse']:.1f} N·s · Pc_max = {res['max_Pc_MPa']:.2f} MPa · Isp = {res['avg_Isp']:.1f} s · Kn_max = {res['max_Kn']:.0f} · {sf_col} SF = {f"{strct['SF_yield']:.2f}" if strct else '—'}
+Active sim — {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · {res['total_impulse']:.1f} N·s · Pc_max {res['max_Pc_MPa']:.2f} MPa · Isp {res['avg_Isp']:.1f} s · Kn_max {res['max_Kn']:.0f} · {sf_col} SF {f"{strct['SF_yield']:.2f}" if strct else '—'}
 </div>
 """, unsafe_allow_html=True)
 
-    # Quick question buttons — two rows, propellant-aware
-    st.markdown('<div style="font-family:Share Tech Mono,monospace; font-size:0.72rem; color:#4a7fa5; margin-bottom:0.5rem; letter-spacing:0.05em;">QUICK QUESTIONS:</div>', unsafe_allow_html=True)
+    # Quick question buttons — propellant-aware
+    st.markdown('<div style="font-family:Share Tech Mono,monospace; font-size:0.72rem; color:#4a7fa5; margin-bottom:0.5rem; letter-spacing:0.05em;">QUICK QUESTIONS</div>', unsafe_allow_html=True)
     suggestions = [
         f"Recommend parameters for {active_prop_abbr}",
+        "What is HLG?",
         "What is c-star?",
-        "What is Kn?",
         "Why is my safety factor low?",
-        "What is dispersion (η_DP)?",
-        "Explain burn rate law",
+        "Explain erosive burning",
         "What is BATES grain?",
+        "How do I get certified?",
         "How do I increase total impulse?",
-        "How do I read results?",
+        "Rocketry learning path",
     ]
     q_cols = st.columns(3)
     for i, sug in enumerate(suggestions):
