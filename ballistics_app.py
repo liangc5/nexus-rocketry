@@ -813,8 +813,7 @@ def plot_structural(struct_arr: List[Tuple], peak_Pc: float) -> go.Figure:
                       title_font=dict(color=_CYN, size=14),
                       barmode='group',
                       xaxis=dict(title='Casing Material', **NEXUS_AXIS),
-                      yaxis=dict(title='Stress (MPa)', **NEXUS_AXIS),
-                      legend=dict(bgcolor='rgba(10,22,40,0.8)'))
+                      yaxis=dict(title='Stress (MPa)', **NEXUS_AXIS))
     return fig
 
 
