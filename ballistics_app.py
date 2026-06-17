@@ -380,7 +380,7 @@ class InternalBallistics:
         n = self.prop.burn_n
         if n >= 1.0:
             return float('nan')
-        a_SI = self.prop.burn_a * 1e-3 * (MPA ** n)
+        a_SI = self.prop.burn_a * 1e-3 / (MPA ** n)
         Kn   = Ab / self.At
         return (self.prop.rho * a_SI * self.cstar_eff * Kn) ** (1.0 / (1.0 - n))
 
@@ -889,47 +889,49 @@ def inject_css() -> None:
 
 /* ── Sidebar ───────────────────────────────────────── */
 [data-testid="stSidebar"] {{
-  background: linear-gradient(180deg, #050e20 0%, #03080f 100%) !important;
-  border-right: 1px solid #0d2444;
+  background: linear-gradient(180deg, #060f22 0%, #040b18 100%) !important;
+  border-right: 2px solid #0d2a50;
 }}
 [data-testid="stSidebar"] .stMarkdown h3 {{
   color: #00d4ff;
   font-family: 'Orbitron', monospace;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-top: 1.2rem;
-  border-bottom: 1px solid #0d2444;
+  border-bottom: 1px solid #0d2a50;
   padding-bottom: 0.3rem;
 }}
 
 /* ── Tabs ──────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {{
-  background: #050d1f;
-  border-bottom: 1px solid #0d2444;
-  gap: 2px;
+  background: #060f22;
+  border-bottom: 2px solid #0d2a50;
+  gap: 4px;
+  padding: 0 0.5rem;
 }}
 .stTabs [data-baseweb="tab"] {{
   background: transparent;
-  color: #8b949e;
+  color: #a0aec0;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 4px 4px 0 0;
   border: 1px solid transparent;
   transition: all 0.2s;
 }}
 .stTabs [data-baseweb="tab"]:hover {{
   color: #00d4ff;
-  background: rgba(0,212,255,0.04);
+  background: rgba(0,212,255,0.07);
 }}
 .stTabs [aria-selected="true"] {{
-  background: rgba(0,212,255,0.08) !important;
+  background: rgba(0,212,255,0.12) !important;
   color: #00d4ff !important;
-  border-color: #0d2444 #0d2444 transparent !important;
+  border-color: #0d2a50 #0d2a50 transparent !important;
   border-bottom: 2px solid #00d4ff !important;
+  font-weight: 600;
 }}
 .stTabs [data-baseweb="tab-panel"] {{
   background: transparent;
@@ -939,66 +941,77 @@ def inject_css() -> None:
 /* ── Metrics ───────────────────────────────────────── */
 [data-testid="stMetricValue"] {{
   font-family: 'Share Tech Mono', monospace;
-  font-size: 1.6rem !important;
+  font-size: 1.8rem !important;
   color: #00d4ff !important;
+  font-weight: 700;
 }}
 [data-testid="stMetricLabel"] {{
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.68rem;
-  color: #8b949e !important;
+  font-size: 0.75rem;
+  color: #a0aec0 !important;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }}
 [data-testid="metric-container"] {{
-  background: rgba(10,22,40,0.7);
-  border: 1px solid #0d2444;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 0 12px rgba(0,212,255,0.04);
+  background: rgba(6,18,38,0.95);
+  border: 1px solid #1a3a60;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 0 20px rgba(0,212,255,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
 }}
 
 /* ── Expanders / Knowledge Base ─────────────────────── */
 .streamlit-expanderHeader {{
-  background: rgba(10,22,40,0.8) !important;
-  border: 1px solid #0d2444 !important;
-  border-radius: 4px !important;
+  background: rgba(6,18,38,0.95) !important;
+  border: 1px solid #1a3a60 !important;
+  border-radius: 6px !important;
   color: #00d4ff !important;
   font-family: 'Share Tech Mono', monospace !important;
-  font-size: 0.8rem !important;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem !important;
 }}
 .streamlit-expanderContent {{
-  background: rgba(5,13,28,0.95) !important;
-  border: 1px solid #0d2444 !important;
+  background: rgba(4,11,24,0.98) !important;
+  border: 1px solid #1a3a60 !important;
   border-top: none !important;
-  border-radius: 0 0 4px 4px !important;
+  border-radius: 0 0 6px 6px !important;
+  padding: 1rem !important;
 }}
 
 /* ── Buttons ───────────────────────────────────────── */
 .stButton > button {{
-  background: linear-gradient(135deg, #002a4a 0%, #003a66 100%);
-  border: 1px solid #00d4ff;
-  color: #00d4ff;
+  background: linear-gradient(135deg, #0a2040 0%, #0f3060 100%);
+  border: 1px solid #2a5a90;
+  color: #7dd3fc;
   font-family: 'Orbitron', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 4px;
-  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  padding: 0.5rem 1.2rem;
   transition: all 0.2s;
   cursor: pointer;
 }}
 .stButton > button:hover {{
-  background: rgba(0,212,255,0.15);
-  box-shadow: 0 0 20px rgba(0,212,255,0.4);
+  background: rgba(0,212,255,0.18);
+  border-color: #00d4ff;
+  color: #00d4ff;
+  box-shadow: 0 0 18px rgba(0,212,255,0.35);
   transform: translateY(-1px);
 }}
 .stButton > button[kind="primary"] {{
-  background: linear-gradient(135deg, #001a40 0%, #00296e 100%);
-  border-color: #00d4ff;
-  box-shadow: 0 0 18px rgba(0,212,255,0.25);
-  font-size: 0.85rem;
-  padding: 0.75rem 2rem;
+  background: linear-gradient(135deg, #001a40 0%, #003070 100%);
+  border: 2px solid #00d4ff;
+  color: #00d4ff;
+  box-shadow: 0 0 24px rgba(0,212,255,0.3);
+  font-size: 0.88rem;
+  padding: 0.8rem 2rem;
+  letter-spacing: 0.14em;
+}}
+.stButton > button[kind="primary"]:hover {{
+  background: linear-gradient(135deg, #002050 0%, #004090 100%);
+  box-shadow: 0 0 36px rgba(0,212,255,0.5);
 }}
 
 /* ── Form inputs ───────────────────────────────────── */
@@ -1006,139 +1019,149 @@ def inject_css() -> None:
 .stNumberInput > div > div > input,
 .stSlider > div,
 .stTextInput > div > input {{
-  background: rgba(5,14,30,0.9) !important;
-  border: 1px solid #0d2444 !important;
-  color: #c9d1d9 !important;
-  border-radius: 4px;
+  background: rgba(4,11,24,0.95) !important;
+  border: 1px solid #1a3a60 !important;
+  color: #e2e8f0 !important;
+  border-radius: 6px;
+  font-size: 0.9rem !important;
 }}
 .stSelectbox label, .stNumberInput label, .stSlider label, .stTextInput label {{
-  color: #8b949e !important;
+  color: #a0aec0 !important;
   font-family: 'Share Tech Mono', monospace !important;
-  font-size: 0.72rem !important;
+  font-size: 0.78rem !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }}
 
 /* ── Info / warning boxes ──────────────────────────── */
 .stAlert {{
-  background: rgba(5,13,28,0.9) !important;
-  border-radius: 4px !important;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.78rem;
+  background: rgba(4,11,24,0.95) !important;
+  border-radius: 6px !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
 }}
-[data-testid="stInfo"] {{ border-left: 3px solid #00d4ff !important; }}
-[data-testid="stWarning"] {{ border-left: 3px solid #ff6b35 !important; }}
-[data-testid="stError"] {{ border-left: 3px solid #ff2d55 !important; }}
-[data-testid="stSuccess"] {{ border-left: 3px solid #39ff14 !important; }}
+[data-testid="stInfo"] {{ border-left: 4px solid #00d4ff !important; color: #a0d8ef !important; }}
+[data-testid="stWarning"] {{ border-left: 4px solid #ff6b35 !important; }}
+[data-testid="stError"] {{ border-left: 4px solid #ff2d55 !important; }}
+[data-testid="stSuccess"] {{ border-left: 4px solid #39ff14 !important; }}
 
 /* ── Chat ──────────────────────────────────────────── */
 [data-testid="stChatInput"] > div {{
-  background: rgba(10,22,40,0.9) !important;
-  border: 1px solid #0d2444 !important;
-  border-radius: 6px !important;
+  background: rgba(6,18,38,0.95) !important;
+  border: 1px solid #1a3a60 !important;
+  border-radius: 8px !important;
 }}
 [data-testid="stChatMessageContent"] {{
-  background: rgba(10,22,40,0.7) !important;
-  border-radius: 6px;
+  background: rgba(6,18,38,0.85) !important;
+  border: 1px solid #1a3a60;
+  border-radius: 8px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
+  color: #e2e8f0 !important;
+  line-height: 1.6;
 }}
 
 /* ── Scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-::-webkit-scrollbar-track {{ background: #03080f; }}
-::-webkit-scrollbar-thumb {{ background: #0d2444; border-radius: 3px; }}
+::-webkit-scrollbar-track {{ background: #030810; }}
+::-webkit-scrollbar-thumb {{ background: #1a3a60; border-radius: 3px; }}
 ::-webkit-scrollbar-thumb:hover {{ background: #00d4ff; }}
 
 /* ── NEXUS panel cards ─────────────────────────────── */
 .nexus-card {{
-  background: rgba(10,22,40,0.85);
-  border: 1px solid #0d2444;
-  border-radius: 8px;
-  padding: 1.2rem 1.5rem;
+  background: rgba(6,18,38,0.95);
+  border: 1px solid #1a3a60;
+  border-radius: 10px;
+  padding: 1.3rem 1.6rem;
   margin-bottom: 1rem;
-  box-shadow: 0 0 24px rgba(0,0,0,0.4), inset 0 0 24px rgba(0,212,255,0.02);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(0,212,255,0.03);
 }}
 .nexus-h1 {{
   font-family: 'Orbitron', monospace;
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 900;
-  background: linear-gradient(135deg, #00d4ff 0%, #0087cc 40%, #a78bfa 100%);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099dd 40%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   margin: 0;
 }}
 .nexus-subtitle {{
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.7rem;
-  color: #4a6fa5;
-  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  color: #4a7fa5;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-top: 0.2rem;
+  margin-top: 0.3rem;
 }}
 .nexus-section {{
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   color: #00d4ff;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  border-bottom: 1px solid #0d2444;
-  padding-bottom: 0.3rem;
-  margin: 1.2rem 0 0.8rem;
+  border-bottom: 1px solid #1a3a60;
+  padding-bottom: 0.4rem;
+  margin: 1.3rem 0 0.9rem;
+  font-weight: 600;
 }}
 .kv-row {{
   display: flex;
   justify-content: space-between;
-  padding: 0.2rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: center;
+  padding: 0.32rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }}
-.kv-key {{ color: #8b949e; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; }}
-.kv-val {{ color: #c9d1d9; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; }}
+.kv-key {{ color: #a0aec0; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; }}
+.kv-val {{ color: #e2e8f0; font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; font-weight: 500; }}
 .kv-val.cyan {{ color: #00d4ff; }}
-.kv-val.orange {{ color: #ff6b35; }}
-.kv-val.green {{ color: #39ff14; }}
-.kv-val.red {{ color: #ff2d55; }}
+.kv-val.orange {{ color: #ff8c55; }}
+.kv-val.green {{ color: #4ade80; }}
+.kv-val.red {{ color: #ff5577; }}
 .motor-badge {{
   display: inline-block;
   background: linear-gradient(135deg, #001a40, #00296e);
-  border: 1px solid #00d4ff;
-  border-radius: 6px;
-  padding: 0.2rem 0.8rem;
+  border: 2px solid #00d4ff;
+  border-radius: 8px;
+  padding: 0.3rem 1rem;
   font-family: 'Orbitron', monospace;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: #00d4ff;
-  box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  box-shadow: 0 0 28px rgba(0,212,255,0.4);
 }}
 .warn-box {{
-  background: rgba(255,107,53,0.08);
-  border: 1px solid rgba(255,107,53,0.4);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin: 0.75rem 0;
+  background: rgba(255,107,53,0.10);
+  border: 1px solid rgba(255,107,53,0.5);
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin: 0.8rem 0;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  color: #ff9560;
+  font-size: 0.82rem;
+  color: #ffaa80;
+  line-height: 1.5;
 }}
 .danger-box {{
-  background: rgba(255,45,85,0.08);
-  border: 1px solid rgba(255,45,85,0.5);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin: 0.75rem 0;
+  background: rgba(255,45,85,0.10);
+  border: 1px solid rgba(255,45,85,0.6);
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin: 0.8rem 0;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  color: #ff5577;
+  font-size: 0.82rem;
+  color: #ff7799;
+  line-height: 1.5;
 }}
 .ok-box {{
-  background: rgba(57,255,20,0.06);
-  border: 1px solid rgba(57,255,20,0.35);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin: 0.75rem 0;
+  background: rgba(57,255,20,0.07);
+  border: 1px solid rgba(57,255,20,0.45);
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin: 0.8rem 0;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  color: #5aff30;
+  font-size: 0.82rem;
+  color: #86efac;
+  line-height: 1.5;
 }}
 </style>
 <div id="stars"></div>
