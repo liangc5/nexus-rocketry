@@ -2342,83 +2342,359 @@ Read the results on the Command Center tab. Check:
 ]
 
 
-def _kb_search(query: str) -> dict:
-    """Find best matching KB entry for a user query."""
-    q = query.lower()
+# ── Propellant startup parameter recommendations ────────────────────────────
+_PROP_PARAMS = {
+    'KNSB': {
+        'name': 'KNSB (Potassium Nitrate / Sorbitol)',
+        'segments': 2, 'ro_mm': 32, 'ri_mm': 13, 'L_mm': 100,
+        'Dt_mm': 10, 'De_mm': 20, 'wall_mm': 3.0, 'material': '6061-T6',
+        'eta_cs': 0.92, 'eta_dp': 1.00,
+        'target_kn': '150–250', 'target_pc': '2–7 MPa',
+        'notes': (
+            "KNSB is the best starting propellant — melt-cast at 95–115 °C, no curing needed.\n\n"
+            "**Why these numbers:**\n"
+            "- ri/ro ≈ 0.41 gives a nearly neutral burn profile\n"
+            "- Dt = 10 mm gives Kn ≈ 200 at initial geometry — safe and stable\n"
+            "- 3 mm Al 6061-T6 wall gives SF ≈ 3.5–4.5 at typical KNSB pressures\n"
+            "- η_DP = 1.00 because KNSB has no metal particles\n\n"
+            "**Expected results:** ~H or I class motor, 2–5 s burn, ~130 N average thrust."
+        ),
+    },
+    'KNSU': {
+        'name': 'KNSU (Potassium Nitrate / Sucrose)',
+        'segments': 2, 'ro_mm': 32, 'ri_mm': 13, 'L_mm': 100,
+        'Dt_mm': 10, 'De_mm': 20, 'wall_mm': 3.0, 'material': '6061-T6',
+        'eta_cs': 0.92, 'eta_dp': 1.00,
+        'target_kn': '150–250', 'target_pc': '2–7 MPa',
+        'notes': (
+            "KNSU behaves very similarly to KNSB but needs a higher processing temperature (160–185 °C). "
+            "Use identical starting parameters to KNSB.\n\n"
+            "**Key difference:** Lower decomposition onset (300 °C vs 339 °C for KNSB) — be extra "
+            "careful with heat control during casting."
+        ),
+    },
+    'APCP_STD': {
+        'name': 'APCP Standard (AP/HTPB/Al 70/18/12)',
+        'segments': 2, 'ro_mm': 38, 'ri_mm': 16, 'L_mm': 120,
+        'Dt_mm': 11, 'De_mm': 22, 'wall_mm': 3.5, 'material': '4130_Steel',
+        'eta_cs': 0.95, 'eta_dp': 0.97,
+        'target_kn': '200–350', 'target_pc': '4–12 MPa',
+        'notes': (
+            "APCP delivers ~50% higher Isp than sugar propellants but requires chemical curing "
+            "(3–7 days at 60 °C) and a certified facility.\n\n"
+            "**Why these numbers:**\n"
+            "- Larger grain (38 mm outer radius) because APCP is used in larger amateur motors\n"
+            "- 4130 Steel casing recommended — higher pressures need stronger material\n"
+            "- η_DP = 0.97 accounts for the 12% aluminum particle loss\n"
+            "- η_c\\* = 0.95 is typical for well-mixed HTPB-based propellant\n\n"
+            "**Expected results:** ~J or K class motor, 2–4 s burn, 300–600 N average thrust."
+        ),
+    },
+    'APCP_NOAL': {
+        'name': 'APCP Metal-Free (AP/HTPB 80/20)',
+        'segments': 2, 'ro_mm': 38, 'ri_mm': 16, 'L_mm': 120,
+        'Dt_mm': 11, 'De_mm': 22, 'wall_mm': 3.5, 'material': '6061-T6',
+        'eta_cs': 0.95, 'eta_dp': 1.00,
+        'target_kn': '200–350', 'target_pc': '4–12 MPa',
+        'notes': (
+            "APCP-NoAl (metal-free) has a cleaner, smoke-reduced exhaust — no aluminum oxide smoke. "
+            "Isp is slightly lower than aluminized APCP but still much better than sugar.\n\n"
+            "**Why η_DP = 1.00:** No aluminum particles means no two-phase flow loss.\n"
+            "**Why 6061-T6 instead of steel:** Lower chamber pressures and no aluminum "
+            "abrasion on the nozzle allows lighter aluminum casings.\n\n"
+            "**Good use cases:** Drone/UAV propulsion where smoke signatures matter; "
+            "research motors where clean exhaust is needed for diagnostics."
+        ),
+    },
+    'GAP_AP': {
+        'name': 'GAP-AP Energetic Composite',
+        'segments': 2, 'ro_mm': 38, 'ri_mm': 15, 'L_mm': 110,
+        'Dt_mm': 10, 'De_mm': 22, 'wall_mm': 4.0, 'material': '4130_Steel',
+        'eta_cs': 0.94, 'eta_dp': 0.98,
+        'target_kn': '200–400', 'target_pc': '5–15 MPa',
+        'notes': (
+            "⚠️ **GAP-AP is NOT for beginners.** This is a specialist energetic propellant "
+            "with a critical temperature of only 270 °C (much lower than HTPB systems).\n\n"
+            "**Requires:** Certified facility, ATF LEUP, experienced mentorship.\n\n"
+            "**Why it's used:** Highest burn rate among the options — used when compact "
+            "high-thrust motors are needed. The azide (-N₃) groups in GAP make it "
+            "self-oxidizing, allowing extreme performance in small volumes.\n\n"
+            "**Start with KNSB or APCP-STD first.** Only move to GAP-AP after extensive "
+            "experience with less hazardous systems."
+        ),
+    },
+}
+
+# ── Intent classifier ────────────────────────────────────────────────────────
+_INTENTS = {
+    'recommend_params': [
+        'recommend', 'suggest', 'good formula', 'what formula', 'what parameter',
+        'what value', 'get started', 'starting point', 'where to start', 'input',
+        'what should i', 'settings for', 'setup for', 'configure', 'values for',
+        'parameters for', 'how to set up', 'what to enter', 'good setting',
+        'initial', 'defaults for', 'starting config',
+    ],
+    'troubleshoot': [
+        'why is', 'too high', 'too low', 'wrong', 'error', 'problem', 'issue',
+        'not working', 'fix', 'crashing', 'fail', 'bad', 'weird', 'unexpected',
+        'increase', 'decrease', 'improve', 'lower my', 'raise my', 'reduce',
+    ],
+    'compare': [
+        'difference between', 'vs', 'versus', 'compare', 'better', 'which is',
+        'should i use', 'pick between',
+    ],
+    'explain': [
+        'what is', 'what are', 'explain', 'define', 'tell me about', 'describe',
+        'how does', 'why does', 'what does', 'mean', 'stands for',
+    ],
+}
+
+_PROP_ALIASES = {
+    'knsb': 'KNSB', 'kn sb': 'KNSB', 'potassium nitrate sorbitol': 'KNSB', 'sugar rocket': 'KNSB',
+    'knsu': 'KNSU', 'kn su': 'KNSU', 'potassium nitrate sucrose': 'KNSB',
+    'apcp std': 'APCP_STD', 'apcp standard': 'APCP_STD', 'apcp-std': 'APCP_STD',
+    'apcp': 'APCP_STD', 'standard apcp': 'APCP_STD', 'aluminized apcp': 'APCP_STD',
+    'apcp noal': 'APCP_NOAL', 'apcp-noal': 'APCP_NOAL', 'metal free': 'APCP_NOAL',
+    'metal-free': 'APCP_NOAL', 'no aluminum': 'APCP_NOAL', 'apcp no al': 'APCP_NOAL',
+    'gap': 'GAP_AP', 'gap ap': 'GAP_AP', 'gap-ap': 'GAP_AP', 'energetic': 'GAP_AP',
+}
+
+
+def _detect_intent(q: str) -> str:
+    for intent, phrases in _INTENTS.items():
+        if any(p in q for p in phrases):
+            return intent
+    return 'explain'
+
+
+def _detect_propellant(q: str) -> str | None:
+    for alias, key in _PROP_ALIASES.items():
+        if alias in q:
+            return key
+    return None
+
+
+def _recommend_answer(prop_key: str | None, active_prop_abbr: str = '') -> dict:
+    """Generate a parameter recommendation answer for a given propellant."""
+    # If no propellant detected in query, use the active one
+    if prop_key is None:
+        reverse = {'KNSB': 'KNSB', 'KNSU': 'KNSU', 'APCP-STD': 'APCP_STD',
+                   'APCP-NoAl': 'APCP_NOAL', 'GAP-AP': 'GAP_AP'}
+        prop_key = reverse.get(active_prop_abbr, 'KNSB')
+
+    p = _PROP_PARAMS.get(prop_key)
+    if not p:
+        p = _PROP_PARAMS['KNSB']
+
+    answer = f"""Here are the **recommended starting parameters** for **{p['name']}**:
+
+---
+
+**Sidebar Section 2 — BATES Grain:**
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| Segments | {p['segments']} | Good balance of total propellant vs. thermal cracking risk |
+| Outer radius (ro) | **{p['ro_mm']} mm** | Fits standard motor tube diameter |
+| Inner radius (ri) | **{p['ri_mm']} mm** | ri/ro ≈ {p['ri_mm']/p['ro_mm']:.2f} → near-neutral burn profile |
+| Segment length (L) | **{p['L_mm']} mm** | L/ri ≈ {p['L_mm']/p['ri_mm']:.1f} → below erosive burning threshold |
+
+**Sidebar Section 3 — Nozzle:**
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| Throat diameter | **{p['Dt_mm']} mm** | Gives Kn ≈ {p['target_kn']} (stable range) |
+| Exit diameter | **{p['De_mm']} mm** | Expansion ratio ε = {(p['De_mm']/p['Dt_mm'])**2:.1f} → good sea-level Isp |
+
+**Sidebar Section 4 — Efficiency:**
+| Parameter | Value |
+|-----------|-------|
+| η_c\\* | {p['eta_cs']:.2f} |
+| η_DP | {p['eta_dp']:.2f} |
+
+**Sidebar Section 5 — Structural:**
+| Parameter | Value |
+|-----------|-------|
+| Casing material | {p['material']} |
+| Wall thickness | {p['wall_mm']} mm |
+
+**Target operating range:** Kn = {p['target_kn']} | Pc = {p['target_pc']}
+
+---
+
+{p['notes']}
+
+---
+**Next step:** Enter these values in the sidebar and click **⚡ EXECUTE SIMULATION**. Then check the Command Center tab — if Safety Factor < 4, increase wall thickness. If Min J < 2, increase inner radius (ri)."""
+
+    return {"title": f"Recommended Starting Parameters — {p['name']}", "answer": answer}
+
+
+def _troubleshoot_answer(q: str, res: dict | None, strct: dict | None) -> dict | None:
+    """Generate troubleshooting answer from live sim data if available."""
+    if res is None:
+        return None  # fall through to KB search
+
+    lines = []
+    prop_name = ''
+
+    if 'kn' in q or 'klemmung' in q or 'pressure' in q:
+        kn = res['max_Kn']
+        pc = res['max_Pc_MPa']
+        if 'high' in q or kn > 400:
+            lines.append(f"**Your Max Kn = {kn:.1f}** (target: 150–350 for sugar, 200–400 for APCP)\n\n")
+            lines.append("**To lower Kn and pressure:**\n")
+            lines.append("1. **Increase throat diameter** — even +1 mm makes a big difference\n")
+            lines.append("2. **Reduce number of segments** — fewer segments = less burning surface\n")
+            lines.append("3. **Reduce segment length** — shorter grains burn less area simultaneously\n")
+            lines.append("4. **Increase inner radius (ri)** — larger core = less solid propellant per segment\n\n")
+            lines.append(f"Current Max Pc = **{pc:.2f} MPa**. Safe upper limit for your propellant: check the P_max in the propellant caption.")
+        elif 'low' in q or kn < 100:
+            lines.append(f"**Your Max Kn = {kn:.1f}** — this is low, which means low chamber pressure and low thrust.\n\n")
+            lines.append("**To increase Kn:**\n")
+            lines.append("1. **Decrease throat diameter** — smaller throat → higher Kn\n")
+            lines.append("2. **Add more segments** or increase segment length\n")
+            lines.append("3. **Decrease inner radius (ri)** — smaller core → more solid propellant burning area\n")
+        else:
+            lines.append(f"**Your Max Kn = {kn:.1f}** | Max Pc = **{pc:.2f} MPa** — these look reasonable.\n\n")
+            lines.append("Kn 150–350 is the typical target for stable operation. Your burn is in the expected range.")
+
+    elif 'sf' in q or 'safety' in q or 'structural' in q or 'wall' in q:
+        if strct:
+            sf = strct['SF_yield']
+            vm = strct['vm_MPa']
+            t4 = strct['t_req_SF4_mm']
+            lines.append(f"**Your Safety Factor (yield) = {sf:.2f}** | Von Mises stress = {vm:.1f} MPa\n\n")
+            if sf < 2:
+                lines.append(f"🛑 **CRITICAL — DO NOT FLY.** SF < 2 means the casing will likely fail at peak pressure.\n\n")
+                lines.append(f"**Fix:** Increase wall thickness to at least **{t4:.2f} mm** (for SF = 4.0), or switch to a stronger material like 4130 Steel or Carbon Fiber/Epoxy.")
+            elif sf < 4:
+                lines.append(f"⚠️ **Marginal** — SF between 2 and 4. Minimum for flight is SF ≥ 4 per HPR guidelines.\n\n")
+                lines.append(f"**Recommended wall thickness for SF = 4:** **{t4:.2f} mm**\n")
+                lines.append(f"Currently using: {strct.get('t_ratio', 0)*100:.1f}% of inner radius. Increase wall thickness.")
+            else:
+                lines.append(f"✅ **Structural margin is good.** SF = {sf:.2f} ≥ 4.0 — casing is safe at peak pressure.")
+
+    elif 'isp' in q or 'thrust' in q or 'impulse' in q or 'class' in q:
+        lines.append(f"**Your motor:** Class **{res['motor_class']}** | It = {res['total_impulse']:.1f} N·s | Fmax = {res['max_thrust']:.1f} N | Isp = {res['avg_Isp']:.1f} s | tb = {res['burn_time']:.3f} s\n\n")
+        if 'increase' in q or 'improve' in q or 'higher' in q:
+            lines.append("**To increase total impulse (larger motor class):**\n")
+            lines.append("1. Add more grain segments or increase segment length\n")
+            lines.append("2. Use a higher-Isp propellant (APCP gives ~50% more Isp than KNSB)\n")
+            lines.append("3. Increase outer radius (more propellant mass per segment)\n\n")
+            lines.append("**To increase average thrust (same burn time, more force):**\n")
+            lines.append("1. Increase Kn (decrease throat diameter)\n")
+            lines.append("2. Switch to faster-burning propellant (higher 'a' coefficient)\n")
+
+    if lines:
+        return {"title": "Troubleshooting — Your Simulation", "answer": ''.join(lines)}
+    return None
+
+
+def _kb_search(query: str, active_prop_abbr: str = '', res: dict | None = None, strct: dict | None = None) -> dict:
+    """Smart multi-intent search over the knowledge base."""
+    q = query.lower().strip()
+
+    # 1. Detect intent and propellant
+    intent = _detect_intent(q)
+    prop_key = _detect_propellant(q)
+
+    # 2. Parameter recommendation intent → answer directly
+    if intent == 'recommend_params':
+        return _recommend_answer(prop_key, active_prop_abbr)
+
+    # 3. Troubleshooting with live sim data
+    if intent == 'troubleshoot' and res is not None:
+        ans = _troubleshoot_answer(q, res, strct)
+        if ans:
+            return ans
+
+    # 4. KB search with smarter scoring
     best, best_score = None, 0
+    words = [w for w in q.split() if len(w) > 2]
     for entry in _KB:
-        score = sum(1 for tag in entry["tags"] if tag in q)
-        # also check if any word in the query appears in the title
-        for word in q.split():
-            if len(word) > 3 and word in entry["title"].lower():
-                score += 2
+        score = 0
+        # Tag match (phrase-in-query)
+        for tag in entry["tags"]:
+            if tag in q:
+                score += len(tag.split())  # longer tag phrases score higher
+        # Word match in title
+        title_lower = entry["title"].lower()
+        for word in words:
+            if word in title_lower:
+                score += 3
+        # Word match in answer snippet (first 200 chars)
+        answer_snippet = entry["answer"][:200].lower()
+        for word in words:
+            if word in answer_snippet:
+                score += 1
         if score > best_score:
             best, best_score = entry, score
-    # fallback: return a helpful default
-    if best_score == 0:
-        return {
-            "title": "I'm not sure — try rephrasing",
-            "answer": """I didn't find an exact match. Try asking about one of these topics:
 
-**Propellant & Chemistry:**
-"What is c-star?" · "What is Isp?" · "What is KNSB?" · "What is APCP?" · "What is oxygen balance?" · "What is gamma?"
+    if best and best_score >= 2:
+        return best
 
-**Grain & Geometry:**
-"What is a BATES grain?" · "What is Kn?" · "What is port-to-throat ratio?" · "What is burn profile?"
+    # 5. Fallback with helpful menu
+    return {
+        "title": "Ask me anything about rocketry!",
+        "answer": f"""I didn't catch exactly what you meant by *"{query}"* — here are things I know well:
 
-**Nozzle & Flow:**
-"What is the throat?" · "What is expansion ratio?" · "What is dispersion?" · "What is chamber pressure?"
+**⚡ Quick starts — just ask:**
+- *"Recommend parameters for KNSB"* — I'll give you exact sidebar values to enter
+- *"Recommend parameters for APCP-NoAl"* — propellant-specific starting configs
+- *"Why is my Kn too high?"* — I'll analyze your live simulation
+- *"How do I increase thrust?"* — troubleshooting with your current numbers
 
-**Burn Rate:**
-"What is saint-robert law?" · "What is a coefficient?" · "What is n exponent?"
+**📖 Concepts I can explain:**
+`c-star` · `Isp` · `Kn / klemmung` · `burn rate` · `a and n coefficients` · `BATES grain` · `KNSB` · `APCP` · `dispersion (η_DP)` · `port-to-throat ratio` · `safety factor` · `hoop stress` · `expansion ratio` · `motor class` · `total impulse` · `neutral burn` · `progressive burn` · `decomposition temperature` · `.ENG file` · `gamma` · `O/F ratio`
 
-**Structural:**
-"What is safety factor?" · "What is hoop stress?" · "What is Von Mises?"
-
-**Results & Interface:**
-"How do I read results?" · "What is total impulse?" · "How do I use this?" · "What is the .eng file?"
-
-**Safety:**
-"What are decomposition temperatures?" · "What is the critical temperature?"
+**🔧 Troubleshooting — just describe the problem:**
+*"My safety factor is too low"* · *"Kn keeps spiking"* · *"burn time too short"* · *"pressure too high"*
 """
-        }
-    return best
+    }
 
 
 def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, ro_mm, ri_mm, L_mm, At_m2, Ae_m2, eta_cs, eta_dp, wall_mm, mat_key) -> None:
-    st.markdown('<div class="nexus-section">🤖 NEXUS Expert System — Ask Anything</div>', unsafe_allow_html=True)
-    st.markdown("""
-<div class="nexus-card" style="padding:0.75rem 1rem; margin-bottom:1rem;">
-<span style="font-family:Share Tech Mono,monospace; font-size:0.75rem; color:#8b949e;">
-💬 Ask in plain English — no API key needed. Try: <em>"What is c-star?"</em> · <em>"Why is my Kn too high?"</em> · <em>"Explain burn rate"</em> · <em>"How do I read results?"</em>
-</span>
+    active_prop = (_prop or prop)
+    active_prop_abbr = active_prop.abbr if active_prop else ''
+
+    st.markdown('<div class="nexus-section">🤖 NEXUS Expert — Ask Anything</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+<div class="nexus-card" style="padding:0.9rem 1.2rem; margin-bottom:1rem; border-color:#1a3a60;">
+<div style="font-family:Share Tech Mono,monospace; font-size:0.8rem; color:#a0aec0; line-height:1.7;">
+  💬 <strong style="color:#00d4ff;">Ask in plain English</strong> — no API key, no internet needed. I know your simulation live.<br>
+  Try: <em>"Recommend parameters for APCP-NoAl"</em> · <em>"Why is my Kn too high?"</em> · <em>"What is c-star?"</em> · <em>"How do I improve my safety factor?"</em>
+</div>
 </div>
 """, unsafe_allow_html=True)
 
-    # Show active sim context if available
+    # Live sim context banner
     if res:
-        with st.expander('📊 Active Simulation Context (click to view)', expanded=False):
-            st.markdown(f"""
-**Propellant:** {(_prop or prop).name} ({(_prop or prop).abbr})
-**Grain:** {(_grain.n_seg if _grain else n_seg)}× BATES | ro = {(_grain.ro if _grain else ro_mm*1e-3)*1e3:.1f} mm | ri = {(_grain.ri0 if _grain else ri_mm*1e-3)*1e3:.1f} mm | L = {(_grain.L0 if _grain else L_mm*1e-3)*1e3:.1f} mm/seg
-**Results:** Class **{res['motor_class']}** | It = {res['total_impulse']:.1f} N·s | tb = {res['burn_time']:.3f} s | Fmax = {res['max_thrust']:.1f} N | Pc_max = {res['max_Pc_MPa']:.3f} MPa | Isp = {res['avg_Isp']:.1f} s | SF = {strct['SF_yield']:.2f}
-""")
+        sf_col = "🟢" if strct and strct['SF_yield'] >= 4 else "🟡" if strct and strct['SF_yield'] >= 2 else "🔴"
+        st.markdown(f"""
+<div style="background:rgba(0,212,255,0.06); border:1px solid #1a3a60; border-radius:8px; padding:0.7rem 1.1rem; margin-bottom:1rem; font-family:Share Tech Mono,monospace; font-size:0.78rem; color:#a0d8ef;">
+📊 <strong>Active sim:</strong> {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · It = {res['total_impulse']:.1f} N·s · Pc_max = {res['max_Pc_MPa']:.2f} MPa · Isp = {res['avg_Isp']:.1f} s · Kn_max = {res['max_Kn']:.0f} · {sf_col} SF = {strct['SF_yield']:.2f if strct else '—'}
+</div>
+""", unsafe_allow_html=True)
 
-    # Suggested questions
-    st.markdown('<div style="font-family:Share Tech Mono,monospace; font-size:0.68rem; color:#4a6fa5; margin-bottom:0.5rem;">QUICK QUESTIONS:</div>', unsafe_allow_html=True)
-    q_cols = st.columns(3)
+    # Quick question buttons — two rows, propellant-aware
+    st.markdown('<div style="font-family:Share Tech Mono,monospace; font-size:0.72rem; color:#4a7fa5; margin-bottom:0.5rem; letter-spacing:0.05em;">QUICK QUESTIONS:</div>', unsafe_allow_html=True)
     suggestions = [
-        "What is c-star?", "What is Kn?", "What is dispersion?",
-        "Explain burn rate law", "What is port-to-throat?", "How do I read results?",
-        "What is BATES grain?", "What is safety factor?", "How do I get started?",
+        f"Recommend parameters for {active_prop_abbr}",
+        "What is c-star?",
+        "What is Kn?",
+        "Why is my safety factor low?",
+        "What is dispersion (η_DP)?",
+        "Explain burn rate law",
+        "What is BATES grain?",
+        "How do I increase total impulse?",
+        "How do I read results?",
     ]
+    q_cols = st.columns(3)
     for i, sug in enumerate(suggestions):
         if q_cols[i % 3].button(sug, key=f'sug_{i}'):
             st.session_state.chat_hist.append({'role': 'user', 'content': sug})
-            result = _kb_search(sug)
+            result = _kb_search(sug, active_prop_abbr, res, strct)
             answer = f"### {result['title']}\n\n{result['answer']}"
-            if res:
-                answer += _inject_sim_context(sug, res, strct, _prop or prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp)
+            answer += _inject_sim_context(sug, res, strct, active_prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp) if res else ''
             st.session_state.chat_hist.append({'role': 'assistant', 'content': answer})
             st.rerun()
 
@@ -2428,17 +2704,16 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
             st.markdown(msg['content'])
 
     # Chat input
-    user_input = st.chat_input('Ask about rocketry, your simulation, equations, or anything else…')
+    user_input = st.chat_input('Ask about your simulation, parameters, rocketry concepts, or troubleshooting…')
     if user_input:
         st.session_state.chat_hist.append({'role': 'user', 'content': user_input})
         with st.chat_message('user'):
             st.markdown(user_input)
 
-        result = _kb_search(user_input)
+        result = _kb_search(user_input, active_prop_abbr, res, strct)
         answer = f"### {result['title']}\n\n{result['answer']}"
-        # Inject live simulation numbers into the answer if relevant
         if res:
-            answer += _inject_sim_context(user_input, res, strct, _prop or prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp)
+            answer += _inject_sim_context(user_input, res, strct, active_prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp)
 
         with st.chat_message('assistant'):
             st.markdown(answer)
@@ -2452,15 +2727,20 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
 
 def _inject_sim_context(query: str, res: dict, strct: dict, prop, grain, At_m2: float, eta_cs: float, eta_dp: float) -> str:
     """Append live simulation numbers to an answer when relevant."""
+    if res is None:
+        return ''
     q = query.lower()
     lines = []
-    if any(w in q for w in ['kn','klemmung','pressure','high','low','why','my']):
-        lines.append(f"\n\n---\n**📊 Your current simulation:** Max Kn = **{res['max_Kn']:.1f}** | Avg Pc = **{res['avg_Pc_MPa']:.2f} MPa** | Max Pc = **{res['max_Pc_MPa']:.2f} MPa**")
+    if any(w in q for w in ['kn','klemmung','pressure','high','low','why','my','current']):
+        lines.append(f"\n\n---\n**📊 Your current sim:** Max Kn = **{res['max_Kn']:.1f}** | Avg Pc = **{res['avg_Pc_MPa']:.2f} MPa** | Max Pc = **{res['max_Pc_MPa']:.2f} MPa**")
     if any(w in q for w in ['safety','sf','structural','wall','casing','burst']):
-        lines.append(f"\n\n---\n**📊 Your current simulation:** SF\\_yield = **{strct['SF_yield']:.2f}** | σ\\_VM = **{strct['vm_MPa']:.1f} MPa** | Required t for SF=4: **{strct['t_req_SF4_mm']:.2f} mm**")
-    if any(w in q for w in ['isp','thrust','impulse','class','burn time','result']):
-        lines.append(f"\n\n---\n**📊 Your current simulation:** Class **{res['motor_class']}** | It = **{res['total_impulse']:.1f} N·s** | Fmax = **{res['max_thrust']:.1f} N** | Isp = **{res['avg_Isp']:.1f} s** | tb = **{res['burn_time']:.3f} s**")
+        if strct:
+            lines.append(f"\n\n---\n**📊 Your current sim:** SF = **{strct['SF_yield']:.2f}** | σ_VM = **{strct['vm_MPa']:.1f} MPa** | Wall needed for SF=4: **{strct['t_req_SF4_mm']:.2f} mm**")
+    if any(w in q for w in ['isp','thrust','impulse','class','burn time','result','how am i doing']):
+        lines.append(f"\n\n---\n**📊 Your current sim:** Class **{res['motor_class']}** | It = **{res['total_impulse']:.1f} N·s** | Fmax = **{res['max_thrust']:.1f} N** | Isp = **{res['avg_Isp']:.1f} s** | tb = **{res['burn_time']:.3f} s**")
     return ''.join(lines)
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════
