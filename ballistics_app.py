@@ -427,7 +427,7 @@ class InternalBallistics:
             raise RuntimeError('Simulation produced no output. Check grain geometry and nozzle throat area.')
 
         t_a = np.array(t_l);  F_a = np.array(F_l);  Pc_a = np.array(Pc_l)
-        It  = float(np.trapz(F_a, t_a))
+        It  = float(np.trapezoid(F_a, t_a))
         m_p = self.grain.initial_mass(self.prop.rho)
 
         # Burn profile type (from Kn trend)
