@@ -1370,15 +1370,21 @@ def main() -> None:
 
         # ── Section 2: BATES Grain ──────────────────────────────────────
         st.markdown('<p class="nexus-section">2 · BATES Grain</p>', unsafe_allow_html=True)
-        n_seg = st.number_input('Segments', min_value=1, max_value=8, value=2, step=1)
-        ro_mm = st.number_input('Outer radius ro (mm)',  min_value=10.0, max_value=200.0, value=38.0, step=0.5)
-        ri_mm = st.number_input('Inner radius ri (mm)',  min_value=5.0,  max_value=190.0, value=16.0, step=0.5)
-        L_mm  = st.number_input('Segment length L (mm)', min_value=10.0, max_value=500.0, value=120.0, step=5.0)
+        n_seg = st.number_input('Segments', min_value=1, max_value=8, value=2, step=1,
+            help='Number of propellant cylinders stacked end-to-end. More segments = more total propellant and longer burn. Start with 2.')
+        ro_mm = st.number_input('Outer radius ro (mm)',  min_value=10.0, max_value=200.0, value=38.0, step=0.5,
+            help='Outer radius of the propellant cylinder — must fit inside your motor tube. For a 76mm tube, ro ≈ 35–37 mm (leaving a thin gap for the liner).')
+        ri_mm = st.number_input('Inner radius ri (mm)',  min_value=5.0,  max_value=190.0, value=16.0, step=0.5,
+            help='Radius of the hollow core drilled through the grain. Larger core = faster initial burn. Rule of thumb: ri ≈ 40–50% of ro gives near-neutral thrust.')
+        L_mm  = st.number_input('Segment length L (mm)', min_value=10.0, max_value=500.0, value=120.0, step=5.0,
+            help='Length of each grain segment. Longer segments = more propellant mass and longer burn time. Keep L/2ri (length-to-port-diameter) below 6 to avoid erosive burning.')
 
         # ── Section 3: Nozzle ───────────────────────────────────────────
         st.markdown('<p class="nexus-section">3 · Nozzle</p>', unsafe_allow_html=True)
-        Dt_mm = st.number_input('Throat diameter (mm)', min_value=1.0, max_value=60.0, value=11.0, step=0.5)
-        De_mm = st.number_input('Exit diameter (mm)',   min_value=2.0, max_value=120.0, value=22.0, step=0.5)
+        Dt_mm = st.number_input('Throat diameter (mm)', min_value=1.0, max_value=60.0, value=11.0, step=0.5,
+            help='Diameter of the narrowest nozzle point (throat). Smaller throat = higher Kn = higher pressure. This is your main pressure tuning knob. Start at 10–12 mm for small motors.')
+        De_mm = st.number_input('Exit diameter (mm)',   min_value=2.0, max_value=120.0, value=22.0, step=0.5,
+            help='Diameter of the nozzle exit (widest point). Larger exit = more expansion = higher Isp. For sea-level flights aim for De/Dt ≈ 2–3 (expansion ratio 4–9).')
         At_m2 = math.pi * (Dt_mm * 1e-3 / 2)**2
         Ae_m2 = math.pi * (De_mm * 1e-3 / 2)**2
         exp_ratio = Ae_m2 / At_m2 if At_m2 > 0 else 0
@@ -1386,33 +1392,29 @@ def main() -> None:
 
         # ── Section 4: Efficiency Factors ───────────────────────────────
         st.markdown('<p class="nexus-section">4 · Efficiency (2-Phase Flow)</p>', unsafe_allow_html=True)
-        eta_cs = st.slider('η_c* — c-star efficiency',    min_value=0.85, max_value=1.00, value=0.95, step=0.01)
-        eta_dp = st.slider('η_DP — two-phase dispersion', min_value=0.90, max_value=1.00, value=0.97, step=0.01)
+        eta_cs = st.slider('η_c* — c-star efficiency',    min_value=0.85, max_value=1.00, value=0.95, step=0.01,
+            help='C-star efficiency: how well the propellant actually burns vs. theoretical. 0.95 = 95% of theoretical maximum — a realistic value for a well-made motor. Losses come from heat transfer to the walls and incomplete combustion.')
+        eta_dp = st.slider('η_DP — two-phase dispersion', min_value=0.90, max_value=1.00, value=0.97, step=0.01,
+            help='Two-phase flow penalty: aluminum particles in APCP burn incompletely and lose energy through drag. 0.97 = 3% Isp loss. Set to 1.00 for metal-free propellants (KNSB, KNSU). Lower with higher aluminum loading.')
         st.caption(f'Combined η = {eta_cs*eta_dp:.4f}')
 
         # ── Section 5: Structural Module ────────────────────────────────
         st.markdown('<p class="nexus-section">5 · Structural Module</p>', unsafe_allow_html=True)
         mat_key  = st.selectbox('Casing Material', list(CASING_MATERIALS.keys()),
-                                format_func=lambda k: CASING_MATERIALS[k].name)
-        wall_mm  = st.number_input('Wall thickness t (mm)', min_value=0.5, max_value=25.0, value=3.0, step=0.25)
+                                format_func=lambda k: CASING_MATERIALS[k].name,
+                                help='Material for the motor casing. 6061-T6 aluminum is common for amateur HPR. 4130 steel is stronger but heavier. Carbon fiber/epoxy has the best strength-to-weight ratio but is expensive.')
+        wall_mm  = st.number_input('Wall thickness t (mm)', min_value=0.5, max_value=25.0, value=3.0, step=0.25,
+            help='Thickness of the casing wall. Thicker wall = higher safety factor but heavier motor. Aim for Safety Factor ≥ 4. The Structural tab shows you exactly what SF your wall gives at peak pressure.')
         ri_cas_mm = ro_mm  # casing inner radius = grain outer radius (assumption)
         st.caption(CASING_MATERIALS[mat_key].comment)
 
         # ── Section 6: Simulation Settings ─────────────────────────────
         st.markdown('<p class="nexus-section">6 · Simulation</p>', unsafe_allow_html=True)
-        dt_us    = st.selectbox('Time step Δt (ms)', [0.25, 0.5, 1.0, 2.0], index=1)
+        dt_us    = st.selectbox('Time step Δt (ms)', [0.25, 0.5, 1.0, 2.0], index=1,
+            help='How finely the simulation divides time. Smaller = more accurate but slower. 0.5 ms is ideal for most motors. Use 0.25 ms for very short burns or when curves look jagged.')
         dt_s     = dt_us * 1e-3
-        mtr_name = st.text_input('Motor designation', value='NEXUS-01')
-
-        # ── AI API Key ──────────────────────────────────────────────────
-        st.markdown('<p class="nexus-section">7 · AI Assistant</p>', unsafe_allow_html=True)
-        api_key_in = st.text_input('Anthropic API key', type='password',
-                                   value=st.session_state.api_key,
-                                   placeholder='sk-ant-…  (optional)')
-        if api_key_in:
-            st.session_state.api_key = api_key_in
-
-        ai_model = st.selectbox('Model', ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'])
+        mtr_name = st.text_input('Motor designation', value='NEXUS-01',
+            help='Name/label for your motor — appears in exported .ENG files and data exports. Use any designation you like, e.g. NEXUS-H220.')
 
         # ── RUN BUTTON ──────────────────────────────────────────────────
         st.markdown('<br>', unsafe_allow_html=True)
@@ -1788,90 +1790,655 @@ def main() -> None:
     with tab_kb:
         render_knowledge_base()
 
-    # ── TAB 7 — AI MENTOR ────────────────────────────────────────────────
+    # ── TAB 7 — AI EXPERT (built-in, no API key needed) ─────────────────
     with tab_ai:
-        st.markdown('<div class="nexus-section">🤖 NEXUS-AI Engineering Mentor</div>', unsafe_allow_html=True)
-        st.caption('Context-aware Anthropic assistant grounded in active simulation state. Ask about derivations, troubleshooting, equations, or design tradeoffs.')
-
-        # Check API availability
-        api_key = st.session_state.api_key
-        if not api_key:
-            st.markdown("""
-<div class="warn-box">
-  ⚠ Enter your Anthropic API key in the sidebar to activate NEXUS-AI.<br>
-  The assistant will have full access to your active simulation data as context.
-</div>
-""", unsafe_allow_html=True)
-        elif not _ANTHROPIC_OK:
-            st.error('`anthropic` package not installed. Run: pip install anthropic')
-        else:
-            # Build simulation context for the system prompt
-            if res:
-                ctx = f"""
-Active simulation — {_prop.name if _prop else prop.name} ({_prop.abbr if _prop else prop.abbr}):
-• Grain: {_grain.n_seg if _grain else n_seg}×BATES | ro={(_grain.ro if _grain else ro_mm*1e-3)*1e3:.2f}mm | ri={(_grain.ri0 if _grain else ri_mm*1e-3)*1e3:.2f}mm | L={(_grain.L0 if _grain else L_mm*1e-3)*1e3:.2f}mm/seg
-• Nozzle: At={(_At or At_m2)*1e6:.3f}mm² | Ae={(_Ae or Ae_m2)*1e6:.3f}mm² | ε={(_Ae or Ae_m2)/(_At or At_m2):.2f}
-• Efficiency: η_c*={_ecs or eta_cs:.3f} | η_DP={_edp or eta_dp:.3f}
-• Propellant: a={(_prop or prop).burn_a} | n={(_prop or prop).burn_n} | ρ={(_prop or prop).rho}kg/m³ | c*={(_prop or prop).cstar}m/s | Tf={(_prop or prop).Tf}K
-• RESULTS: Class={res['motor_class']} | It={res['total_impulse']:.2f}N·s | tb={res['burn_time']:.3f}s
-• Thrust: Fmax={res['max_thrust']:.1f}N | Favg={res['avg_thrust']:.1f}N
-• Pressure: Pc_max={res['max_Pc_MPa']:.3f}MPa | Pc_avg={res['avg_Pc_MPa']:.3f}MPa
-• Isp_avg={res['avg_Isp']:.1f}s | r_avg={res['avg_r']:.2f}mm/s
-• Kn: init={res['init_Kn']:.1f} | max={res['max_Kn']:.1f} | profile={res['profile']}
-• Min port/throat J={res['min_Jpt']:.2f} {'⚠ EROSIVE RISK' if res['min_Jpt']<2 else ''}
-• Structural: SF_yield={strct['SF_yield']:.2f} | σ_VM={strct['vm_MPa']:.2f}MPa | material={(_mat or CASING_MATERIALS[mat_key]).name} | t={wall_mm}mm
-• c*_eff={res['cstar_eff']:.2f}m/s | Γ={res['Gamma']:.5f}
-"""
-            else:
-                ctx = f'No simulation results yet. Current propellant selected in sidebar: {prop.name} ({prop.abbr}).'
-
-            system_prompt = build_system_prompt(ctx)
-
-            # Display chat history
-            for msg in st.session_state.chat_hist:
-                with st.chat_message(msg['role']):
-                    st.markdown(msg['content'])
-
-            # Chat input
-            user_input = st.chat_input('Ask NEXUS-AI about your design…')
-            if user_input:
-                st.session_state.chat_hist.append({'role': 'user', 'content': user_input})
-                with st.chat_message('user'):
-                    st.markdown(user_input)
-
-                messages = [{'role': m['role'], 'content': m['content']}
-                            for m in st.session_state.chat_hist]
-
-                with st.chat_message('assistant'):
-                    try:
-                        client = anthropic.Anthropic(api_key=api_key)
-
-                        def stream_response():
-                            with client.messages.stream(
-                                model=ai_model,
-                                max_tokens=2048,
-                                system=system_prompt,
-                                messages=messages,
-                            ) as stream:
-                                for text in stream.text_stream:
-                                    yield text
-
-                        full_response = st.write_stream(stream_response())
-                        st.session_state.chat_hist.append({'role': 'assistant', 'content': full_response})
-
-                    except Exception as exc:
-                        err_msg = f'AI assistant error: {exc}'
-                        st.error(err_msg)
-                        st.session_state.chat_hist.append({'role': 'assistant', 'content': err_msg})
-
-            # Clear chat button
-            if st.session_state.chat_hist:
-                if st.button('Clear chat history', width='content'):
-                    st.session_state.chat_hist = []
-                    st.rerun()
+        render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, ro_mm, ri_mm, L_mm, At_m2, Ae_m2, eta_cs, eta_dp, wall_mm, mat_key)
 
     # Footer disclaimer
     render_disclaimer()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BUILT-IN ROCKETRY EXPERT KNOWLEDGE BASE  (no API key required)
+# ═══════════════════════════════════════════════════════════════════════════
+
+_KB: list = [
+    {
+        "tags": ["c star","c*","cstar","characteristic velocity","c-star","what is c"],
+        "title": "C* — Characteristic Velocity",
+        "answer": """**C\\* (C-star) — Characteristic Velocity** is the single best number for measuring how energetically your propellant burns, independent of the nozzle design.
+
+**Plain English:** Imagine two rockets with identical nozzles. The one whose propellant produces hotter, lighter combustion gases will push more mass out faster — that's a higher C\\*. It tells you "how good is the propellant itself?"
+
+**Formula:**
+> C\\* = (Chamber Pressure × Throat Area) / Mass Flow Rate
+> C\\* = √(R·Tf / γ) / Γ
+
+**What the numbers mean:**
+- KNSB (sugar rocket): ~889 m/s — decent for a hobby propellant
+- APCP standard: ~1578 m/s — much more energetic
+- Liquid hydrogen/oxygen: ~2300+ m/s — top tier
+
+**C\\* Efficiency (η\\_c\\*)** in the sidebar (default 0.95) accounts for real-world losses: incomplete mixing, heat loss to the casing, and combustion instability. A value of 0.95 means your motor achieves 95% of the theoretical maximum — typical for well-made amateur motors.
+
+**Ref:** Sutton & Biblarz (2016) §3.3"""
+    },
+    {
+        "tags": ["dispersion","eta dp","two phase","two-phase","particle","aluminum","al particle","η_dp","phase flow","what is dispersion"],
+        "title": "η_DP — Two-Phase Dispersion Loss",
+        "answer": """**η\\_DP — Two-Phase Dispersion Penalty** accounts for the fact that burning aluminum particles (in APCP) don't behave like a perfect gas.
+
+**Plain English:** When aluminum powder burns inside the motor, it creates tiny molten droplets. These droplets are heavier than gas molecules — they can't accelerate as fast through the nozzle, and they carry heat with them that doesn't get converted to thrust. η\\_DP captures how much performance you lose because of this.
+
+**Why it matters:**
+- Metal-free propellants (APCP-NoAl, KNSB): set η\\_DP = 1.00 (no penalty — no particles)
+- Standard APCP with 12% Al: η\\_DP ≈ 0.97 (lose ~3% of theoretical Isp)
+- Higher Al loading or finer particles → lower η\\_DP
+
+**Default value of 0.97** means 97% of theoretical Isp is achieved — 3% lost to particle drag and thermal lag.
+
+**Combined efficiency** = η\\_c\\* × η\\_DP. At defaults (0.95 × 0.97 = 0.9215), you get ~92% of theoretical performance — realistic for a well-built amateur motor.
+
+**Ref:** Kuo & Summerfield (1984) §5; Sutton & Biblarz §13.5"""
+    },
+    {
+        "tags": ["kn","klemmung","klemung","ab/at","burn area","surface area ratio","what is kn","klemung coefficient"],
+        "title": "Kn — Klemmung Coefficient",
+        "answer": """**Kn (Klemmung Coefficient)** = Burning Surface Area ÷ Throat Area (Ab / At)
+
+**Plain English:** Kn tells you how "pressurized" your motor will be. A bigger burning surface relative to the throat means more gas trying to escape through a smaller hole — higher chamber pressure.
+
+**Why it matters:**
+- Higher Kn → Higher chamber pressure → Higher burn rate → Even higher pressure (feedback loop)
+- This is why n < 1 is required for stability — if n ≥ 1, the feedback becomes runaway (CATO = catastrophic failure)
+- Typical safe operating range: Kn = 150–300 for sugar propellants, up to 400–500 for APCP
+
+**Burn profiles from Kn trend:**
+- Kn stays flat → Neutral burn (constant thrust) — ideal
+- Kn increases → Progressive burn (thrust increases over time)
+- Kn decreases → Regressive burn (thrust decreases over time)
+
+**Rule of thumb:** If your Kn > 600, check your nozzle — the pressure may exceed the propellant's valid range.
+
+**Ref:** Nakka (2023); Sutton & Biblarz §13"""
+    },
+    {
+        "tags": ["isp","specific impulse","impulse","efficiency","seconds","what is isp","specific impulse mean"],
+        "title": "Isp — Specific Impulse",
+        "answer": """**Isp (Specific Impulse)** is the "miles-per-gallon" of rocket propellants — how much thrust you get per unit of propellant consumed.
+
+**Formula:**
+> Isp = Thrust / (Mass Flow Rate × g₀)   [units: seconds]
+
+**Plain English:** If your motor has Isp = 165 s, it means 1 kg of propellant produces 165 N of thrust for 1 second, OR 1650 N for 0.1 seconds. Higher = better efficiency.
+
+**Typical values:**
+- KNSB (sugar): ~130–165 s (sea level to vacuum)
+- APCP standard: ~210–242 s
+- Liquid LOX/Kerosene (Falcon 9): ~282–311 s
+- Liquid LOX/LH2 (Space Shuttle Main Engine): ~366–453 s
+
+**Vacuum vs Sea-Level Isp:** Vacuum Isp is always higher because there's no atmosphere pushing back against the exhaust. The difference depends on nozzle expansion ratio.
+
+**Ref:** Sutton & Biblarz §2"""
+    },
+    {
+        "tags": ["bates","grain","segments","segment","core","hollow cylinder","grain geometry","what is bates","grain design"],
+        "title": "BATES Grain — What It Is",
+        "answer": """**BATES** stands for **Ballistic Test and Evaluation System** — it's the most common grain geometry for amateur and research solid rocket motors.
+
+**Plain English:** A BATES grain is a cylinder of propellant with a hole drilled through the middle. When it burns, the hole gets bigger from the inside out AND the ends recede inward simultaneously.
+
+**The 3 dimensions you set:**
+- **Outer radius (ro):** How thick the cylinder is — limited by your motor tube diameter
+- **Inner radius (ri):** How big the starting hole is — controls initial Kn and burn rate
+- **Length (L):** How long each segment is — more length = more propellant = longer burn
+
+**Multiple segments:** Instead of one long grain, you use 2–4 shorter segments with small gaps between them. This prevents the grain from cracking under thermal stress, and the gaps expose the end faces for burning.
+
+**Rule of thumb:** ri/ro ratio of 0.4–0.6 gives close to neutral burn. Smaller core (lower ri) = progressive burn. Larger core (higher ri) = regressive burn.
+
+**Ref:** Nakka (2023) Grain Design Guide; Sutton & Biblarz §13"""
+    },
+    {
+        "tags": ["saint robert","burn rate","vieille","a coefficient","n exponent","pressure exponent","burn law","what is a","what is n","burn rate law"],
+        "title": "Saint-Robert Burn Rate Law (a and n)",
+        "answer": """**Saint-Robert Law** (also called Vieille's Law) describes how fast your propellant surface burns at a given chamber pressure:
+
+> **r = a · Pc^n**   (r in mm/s, Pc in MPa)
+
+**What 'a' means:** The base burn rate at 1 MPa pressure. Higher 'a' = faster burning propellant overall. KNSB has a = 8.26, meaning at 1 MPa it burns at 8.26 mm/s.
+
+**What 'n' means (pressure exponent):** How sensitive the burn rate is to pressure changes.
+- n = 0.3: A 10% pressure increase → only 3% faster burn rate (stable, good)
+- n = 0.9: A 10% pressure increase → 9% faster burn rate (risky, nearly unstable)
+- n ≥ 1.0: **CATO territory** — pressure runaway, motor explodes
+
+**CRITICAL STABILITY RULE: n must be less than 1.0**
+
+Typical safe values: n = 0.30–0.40 for sugar propellants, 0.33–0.40 for APCP.
+
+**The chart on the Burn Rate tab** shows exactly how burn rate changes across the valid pressure range for your selected propellant.
+
+**Ref:** Sutton & Biblarz §11.2; Kubota (2007) §3"""
+    },
+    {
+        "tags": ["throat","nozzle","throat diameter","at","throat area","nozzle throat","what is throat","choked flow"],
+        "title": "Nozzle Throat — What It Does",
+        "answer": """**The nozzle throat** is the narrowest point of the nozzle — this is where the magic happens.
+
+**Plain English:** Hot combustion gases accelerate as they're squeezed through the throat. At the throat, the flow reaches exactly the speed of sound (Mach 1). After the throat, it continues expanding and accelerating to supersonic speeds through the diverging section.
+
+**Why throat size matters enormously:**
+- Smaller throat → higher Kn → higher chamber pressure → faster burn rate
+- Bigger throat → lower pressure → slower burn, lower thrust
+- The throat is the single most powerful tuning knob on your motor
+
+**Throat diameter selection rule of thumb:**
+> At = Ab_initial / target_Kn
+
+If you want Kn ≈ 200 and your grain has 50 cm² of burning surface, you need At ≈ 50/200 = 0.25 cm² → throat diameter ≈ 5.6 mm.
+
+**Erosion:** Nozzle throats erode during firing (especially graphite nozzles), which increases throat area, lowers Kn and pressure over time. This is why real burn profiles often show decreasing pressure late in the burn.
+
+**Ref:** Sutton & Biblarz §3.3, §15"""
+    },
+    {
+        "tags": ["exit","expansion ratio","exit diameter","ae","expansion","diverging","epsilon","nozzle exit","what is exit"],
+        "title": "Nozzle Exit & Expansion Ratio (ε)",
+        "answer": """**Expansion Ratio (ε)** = Exit Area / Throat Area = (De/Dt)²
+
+**Plain English:** After gases go supersonic at the throat, they expand in the diverging section. A larger exit area gives the gases more room to expand, extracting more energy as thrust. But there's an optimal size — too big and you "over-expand" (exhaust pressure drops below ambient, reducing thrust).
+
+**Typical values:**
+- Simple amateur motors: ε = 4–8
+- High-altitude/vacuum optimized: ε = 20–100+
+- Sea-level optimal (maximize thrust at ground level): ε ≈ 7–12 for most propellants
+
+**How to pick:** For HPR flights below 30,000 ft, ε = 6–10 is a good starting point. The simulator uses sea-level Isp, so your expansion ratio is baked into the Cf value.
+
+**The caption below Exit Diameter** shows you the current ε — aim for 4–12 for typical amateur motors.
+
+**Ref:** Sutton & Biblarz §3.4"""
+    },
+    {
+        "tags": ["port throat","port to throat","j ratio","erosive","erosive burning","j<2","port","what is j","erosion burning"],
+        "title": "Port-to-Throat Ratio (J) & Erosive Burning",
+        "answer": """**Port-to-Throat Ratio J** = Core Port Area / Throat Area = (π·ri²) / At
+
+**Plain English:** The "port" is the hollow channel (hole) running through the grain. If this channel is too narrow relative to the throat, combustion gases rush through it too fast — scrubbing the burning surface and making it burn even faster than the pressure alone predicts. This is **erosive burning**.
+
+**The danger of J < 2.0:**
+When J drops below 2, gas velocity in the core is so high it creates local pressure and temperature spikes. The burn rate on the upstream end of the grain increases unpredictably, spiking chamber pressure — potentially to failure.
+
+**What to do if J < 2.0 warning appears:**
+1. Increase the core diameter (larger ri)
+2. Reduce the throat area (larger throat diameter) — wait, that INCREASES Kn, careful
+3. Use fewer/shorter segments to keep the core area large relative to throat
+
+**Rule:** J ≥ 2.0 at all times during the burn. The simulator tracks the minimum J across the entire burn and flags it if it goes below 2.
+
+**Ref:** Nakka (2023); Sutton & Biblarz §13.4"""
+    },
+    {
+        "tags": ["chamber pressure","pc","pressure","mpa","chamber","what is pc","chamber pressure mean"],
+        "title": "Chamber Pressure (Pc)",
+        "answer": """**Chamber Pressure (Pc)** is the pressure inside the combustion chamber while the motor is firing.
+
+**Plain English:** This is how hard the burning propellant is pushing in every direction — against the casing walls, against the nozzle, and out the throat. Higher pressure generally means more thrust, but also more stress on the motor.
+
+**Typical ranges:**
+- KNSB/KNSU sugar motors: 1–10 MPa (145–1450 psi)
+- APCP amateur motors: 2–15 MPa (290–2175 psi)
+- Professional solid motors: 5–25 MPa
+
+**Why Max Pc matters:**
+1. **Structural:** The casing must survive peak pressure. The Structural tab calculates safety factors based on max Pc.
+2. **Burn rate validity:** Each propellant has a valid pressure range (P\\_min to P\\_max in the database). Operating outside this range makes the Saint-Robert law inaccurate.
+3. **Nozzle erosion:** Higher pressure increases throat erosion rate.
+
+**To lower Pc:** Increase throat size, decrease Kn, or use fewer grain segments.
+**To raise Pc:** Decrease throat size, increase Kn.
+
+**Ref:** Sutton & Biblarz §3, §13"""
+    },
+    {
+        "tags": ["total impulse","impulse","newton second","ns","motor class","class","what class","h motor","i motor","motor classification"],
+        "title": "Total Impulse & Motor Classification",
+        "answer": """**Total Impulse (It)** = area under the thrust-vs-time curve = Thrust × Burn Time (approximately)
+Units: Newton-seconds (N·s)
+
+**Plain English:** This is the total "kick" your motor delivers. A motor that burns 100 N for 2 seconds and one that burns 50 N for 4 seconds both have the same total impulse (200 N·s) — same letter class.
+
+**NAR/TRA Motor Classes:**
+
+| Class | Total Impulse (N·s) | Cert. Needed |
+|-------|---------------------|--------------|
+| F | 40–80 | L1 |
+| G | 80–160 | L1 |
+| H | 160–320 | L1 |
+| I | 320–640 | L1 |
+| J | 640–1,280 | L2 |
+| K | 1,280–2,560 | L2 |
+| L | 2,560–5,120 | L2 |
+| M | 5,120–10,240 | L3 |
+
+Each class is exactly double the previous. A "full H" motor = 320 N·s exactly.
+
+**Research/EX motors** (motors you make yourself) require an ATF LEUP (Low Explosives User Permit) in the US.
+
+**Ref:** NAR Motor Classification Standards; NFPA 1127"""
+    },
+    {
+        "tags": ["safety factor","sf","yield","structural","hoop stress","von mises","wall thickness","burst","casing","what is sf","what is safety factor"],
+        "title": "Safety Factor & Structural Analysis",
+        "answer": """**Safety Factor (SF)** = Material Strength / Actual Stress
+
+**Plain English:** If SF = 4, your casing is 4× stronger than it needs to be to survive the peak pressure. SF = 1 means you're exactly at the breaking point — any variation and it fails.
+
+**Recommended minimum SF values for HPR casings:**
+- SF ≥ 4.0 ✅ — Standard design guideline (accounts for material variability, dynamic loading, thermal effects)
+- SF 2.0–4.0 ⚠️ — Marginal. Requires engineering analysis and justification
+- SF < 2.0 🛑 — **DO NOT FLY.** Casing will likely fail.
+
+**Hoop Stress** is the stress trying to split the cylinder lengthwise (like a soda can bursting). It's always higher than axial stress for a cylinder under internal pressure — this is what usually fails first.
+
+**Von Mises Stress** combines hoop and axial stresses into one number representing the "effective" stress for predicting yielding. It's what's compared against yield strength (Sy).
+
+**What to do if SF is too low:**
+1. Increase wall thickness (most effective)
+2. Choose a stronger material (4130 steel or CF/epoxy instead of aluminum)
+3. Reduce chamber pressure (larger throat)
+
+**Ref:** Shigley's Mechanical Engineering Design §3-14"""
+    },
+    {
+        "tags": ["knsb","knsu","sugar","potassium nitrate","sorbitol","sucrose","kn propellant","candy propellant","what is knsb","what is knsu"],
+        "title": "KNSB & KNSU — Sugar Propellants",
+        "answer": """**KNSB** (65% Potassium Nitrate / 35% Sorbitol) and **KNSU** (65% KNO₃ / 35% Sucrose) are the classic "candy propellants" — the starting point for most amateur rocketry.
+
+**Why beginners use them:**
+- No special chemicals beyond hobby-grade KNO₃ and food sugar
+- Melt-cast process (like making fudge) — no chemical curing needed
+- Relatively low processing temperatures (95–185°C)
+- Well-documented in Richard Nakka's extensive online research
+
+**KNSB vs KNSU:**
+- KNSB uses sorbitol (a sugar alcohol): melts at ~95°C, more forgiving to process
+- KNSU uses sucrose (table sugar): melts at ~186°C, slightly higher performance but trickier
+- Both deliver Isp ~130–165 s (sea level to vacuum) — lower than APCP but accessible
+
+**CRITICAL SAFETY:**
+- Process at ≤200°C only. Higher temperatures risk auto-ignition (KNO₃ decomposes at 400°C)
+- Never use open flame heating — electric heat only
+- Store in cool, dry, static-safe environment
+- Work in small batches only
+
+**These are Class 1.3C or 1.4C explosives** — check local regulations before processing.
+
+**Ref:** Nakka (2023) rocketry.burri.to; Sutton & Biblarz"""
+    },
+    {
+        "tags": ["apcp","ammonium perchlorate","htpb","composite propellant","aluminum","standard apcp","what is apcp"],
+        "title": "APCP — Ammonium Perchlorate Composite Propellant",
+        "answer": """**APCP** (Ammonium Perchlorate Composite Propellant) is the standard propellant for commercial HPR motors (AeroTech, Cesaroni, etc.) and advanced experimental rocketry.
+
+**Composition (typical):**
+- 70% NH₄ClO₄ (ammonium perchlorate) — oxidizer, provides oxygen for combustion
+- 18% HTPB (hydroxyl-terminated polybutadiene) — rubber binder/fuel
+- 12% Aluminum powder — fuel, increases flame temperature dramatically (+800°C vs metal-free)
+
+**Why it's better than sugar:**
+- Isp ~210–242 s vs ~130–165 s for KNSB — roughly 50% more efficient
+- Much higher flame temperature (3350 K vs 1720 K) = more energy per gram
+- Can be formulated for a wide range of burn rates
+
+**Why it's harder:**
+- Chemically cured thermosetting system — must cure at 50–70°C for 3–7 DAYS
+- NEVER heat above 90°C during processing — fire/explosion risk
+- Mixed propellant is sensitive to friction, impact, and static
+- Requires ATF LEUP and certified facility to process legally in the US
+- NOT for beginners
+
+**The white smoke** from APCP motors is aluminum oxide (Al₂O₃) — the combustion product of aluminum burning.
+
+**Ref:** Sutton & Biblarz §12; Kuo & Summerfield (1984)"""
+    },
+    {
+        "tags": ["neutral","progressive","regressive","burn profile","thrust profile","flat burn","what is neutral","progressive burn"],
+        "title": "Burn Profiles — Neutral, Progressive, Regressive",
+        "answer": """**Burn Profile** describes how thrust changes over the burn duration, determined by how the burning surface area (and thus Kn) changes with time.
+
+**Neutral Burn** (flat thrust):
+- Burning surface area stays roughly constant throughout the burn
+- Kn stays flat → constant chamber pressure → constant thrust
+- Most desirable for flight stability and predictable performance
+- Achieved by balancing core growth (increases Ab) vs. end recession (decreases Ab)
+- BATES grains with ri/ro ≈ 0.5 tend to be close to neutral
+
+**Progressive Burn** (rising thrust):
+- Burning surface increases over time → Kn rises → pressure and thrust increase
+- Gives a slow start and a powerful finish
+- Useful for staged motors or when you want max thrust near end of burn
+- Risk: late pressure spike must still be within structural limits
+
+**Regressive Burn** (falling thrust):
+- Burning surface decreases over time → Kn falls → pressure and thrust decrease
+- Common in end-burning grains
+- Often seen in larger ri/ro ratios where the grain quickly becomes all end-burning
+
+**For flight stability:** Neutral or slightly progressive burns are preferred — you want consistent thrust during the boost phase."""
+    },
+    {
+        "tags": ["time step","dt","simulation accuracy","timestep","time resolution","what is time step","0.5 ms"],
+        "title": "Time Step (Δt) — Simulation Accuracy",
+        "answer": """**Time Step (Δt)** is how finely the simulation divides time when calculating the burn progression.
+
+**Plain English:** The simulator steps forward in tiny time increments, recalculating pressure, thrust, and burn rate at each step. Smaller steps = more accurate result, but takes longer to compute.
+
+**The options:**
+- **0.25 ms** — Most accurate. Use for final design verification or when you see jagged curves. Can be slow for long burns.
+- **0.5 ms** *(default)* — Good balance of accuracy and speed. Fine for most designs.
+- **1.0 ms** — Faster, slightly less accurate. OK for initial exploration.
+- **2.0 ms** — Quickest. Use only for rough estimates or very long burn motors.
+
+**When to use finer steps:**
+- If your thrust curve looks "stepped" or choppy instead of smooth
+- Short, fast-burning motors (< 0.5 s burn time)
+- When peak pressure values seem inconsistent between runs
+
+**For most HPR motors:** 0.5 ms is perfectly adequate."""
+    },
+    {
+        "tags": ["total impulse","burn time","avg thrust","max thrust","results","output","what does","reading results","understand results"],
+        "title": "Reading the Simulation Results",
+        "answer": """**How to read the Command Center results panel:**
+
+**Motor Class** — The NAR/TRA letter (A through O+) based on total impulse. Determines what certification you need to fly it.
+
+**Total Impulse (N·s)** — Total "kick" delivered. This is the primary number for motor classification.
+
+**Burn Time (s)** — How long the motor fires from ignition to burnout.
+
+**Max Thrust / Avg Thrust (N)** — Peak and average thrust force. 1 N = 0.225 lbf. To lift a rocket, avg thrust should exceed rocket weight × 5 (5:1 thrust-to-weight ratio minimum).
+
+**Max Pc (MPa)** — Peak chamber pressure. Check this against your structural safety factor. 1 MPa ≈ 145 psi.
+
+**Avg Isp (s)** — Average specific impulse — propellant efficiency.
+
+**Avg r (mm/s)** — Average burn rate of the propellant surface.
+
+**Max Kn** — Peak Klemmung. Should stay below ~500 for sugar propellants.
+
+**Min J (port/throat)** — Should stay above 2.0 to avoid erosive burning.
+
+**Struct. SF** — Structural safety factor. Green ✅ = SF ≥ 4, Orange ⚠️ = SF 2–4, Red 🛑 = SF < 2 (unsafe)."""
+    },
+    {
+        "tags": ["decomp","decomposition","temperature","safe temperature","processing temperature","heat","critical temp","auto ignition"],
+        "title": "Decomposition Temperatures & Thermal Safety",
+        "answer": """**Every propellant has two critical temperature thresholds:**
+
+**Decomp Onset Temperature** — The temperature where the propellant begins to decompose (release gas and energy) without an ignition source. You feel it as faint heating or gas release.
+
+**Critical Temperature** — The point where thermal runaway begins. At or above this temperature, the decomposition becomes self-sustaining and accelerates to auto-ignition.
+
+**The propellants ranked by how forgiving they are:**
+1. **KNSB** — Onset 339°C, Critical 400°C. Most forgiving. Widest safety margin.
+2. **KNSU** — Onset 300°C, Critical 380°C. Slightly less margin, higher processing temp needed.
+3. **APCP** — Onset 240°C, Critical 300°C. Never exceed 90°C during processing — far below onset, but exothermic cure reaction adds heat.
+4. **GAP-AP** — Onset 220°C, Critical 270°C. ⚠️ Energetic azide groups. Specialist facility only.
+
+**Golden rules:**
+- Always use electric heating (no open flames)
+- Never leave propellant unattended while heating
+- Work in small batches (< 500g for beginners)
+- Keep a large water source nearby
+- No metal tools that could create sparks
+
+**Ref:** Kubota (2007) §2; NFPA 1127"""
+    },
+    {
+        "tags": ["eng file","eng","openrocket","rasp","thrust curve","export","download","file format","eng format"],
+        "title": ".ENG File — Exporting to OpenRocket",
+        "answer": """**The .ENG file** is the standard RASP format for sharing thrust curves between simulation software.
+
+**What it is:** A text file containing a time-vs-thrust table that flight simulation programs (OpenRocket, RASAero II, ThrustCurve.org) read to predict your rocket's flight trajectory.
+
+**How to use it:**
+1. Run your simulation in NEXUS
+2. Go to the **Data Export** tab
+3. Click **Download .ENG File**
+4. In **OpenRocket**: File → Open → select your .eng file, or put it in the `thrustcurves` folder in your OpenRocket directory
+5. Your motor will appear in the motor database under "User Defined"
+
+**The file contains:**
+- Motor designation, diameter, length, propellant mass, total mass
+- Up to 200 time-thrust data points (downsampled if needed)
+- Comments with all simulation parameters
+
+⚠️ **Important:** This is a theoretical simulation. Real motor performance will differ. Always static-fire test before flight and record your actual thrust curve.
+
+**Ref:** thrustcurve.org/info/raspformat.html"""
+    },
+    {
+        "tags": ["sigma","hoop","axial","stress","lame","thin wall","thick wall","ri","ro","wall","pressure vessel"],
+        "title": "Hoop Stress, Axial Stress & Lamé Equations",
+        "answer": """**Hoop Stress (σ\\_h)** — The stress trying to burst the cylinder open along its length (like a hotdog casing splitting). This is ALWAYS the largest stress in a pressurized cylinder.
+
+**Axial Stress (σ\\_a)** — The stress trying to push the end caps off the cylinder. Always half of hoop stress for thin-wall cylinders.
+
+**Thin-wall vs Thick-wall:**
+- If wall thickness t < 10% of inner radius → **thin-wall equations** (simpler, slightly optimistic)
+- If t ≥ 10% of inner radius → **Lamé thick-wall equations** (more conservative, more accurate for stubby motor casings)
+
+**Simple thin-wall formula:**
+> σ\\_hoop = Pc × ri / t
+
+So if chamber pressure is 5 MPa, inner radius is 38 mm, and wall is 3 mm:
+σ\\_hoop = 5 × 38/3 = 63.3 MPa
+
+Compare this to your material's yield strength (Sy):
+- 6061-T6 aluminum: Sy = 276 MPa → SF = 276/63.3 = **4.36 ✅**
+
+**Ref:** Shigley's §3-14; Roark's §13"""
+    },
+    {
+        "tags": ["gamma","specific heat ratio","cp cv","gamma ratio","what is gamma","specific heat"],
+        "title": "γ (Gamma) — Specific Heat Ratio",
+        "answer": """**γ (gamma)** = Cp / Cv = ratio of specific heat at constant pressure to specific heat at constant volume
+
+**Plain English:** γ describes how the combustion gas behaves when it expands. A higher γ means the gas releases more energy as it expands — more thrust per unit of expansion.
+
+**Why it appears in rocket equations:**
+- In the Vandenkerckhove function Γ (capital gamma) which appears in choked flow calculations
+- In the isentropic expansion equations for nozzle design
+- In the optimal expansion ratio calculation
+
+**Typical values:**
+- Diatomic gases (N₂, O₂): γ = 1.4
+- Combustion products of solid propellants: γ = 1.13–1.25 (lower because larger, more complex molecules)
+- KNSB products: γ = 1.131 (mostly K₂CO₃, CO₂, CO, N₂, H₂O)
+- APCP products: γ = 1.20
+
+**For simulation purposes:** γ is built into the propellant database and used automatically. You don't need to set it — it's listed in the propellant info panel."""
+    },
+    {
+        "tags": ["of ratio","oxidizer fuel","oxygen balance","equivalence ratio","phi","stoichiometric","rich lean","fuel rich"],
+        "title": "O/F Ratio, Oxygen Balance & Equivalence Ratio",
+        "answer": """**O/F Ratio** (Oxidizer-to-Fuel) = mass of oxidizer / mass of fuel in the propellant mix.
+
+**Plain English:** How much oxidizer do you have for every gram of fuel? Too much oxidizer = oxygen-rich (wasteful, cooler). Too much fuel = fuel-rich (unburned carbon, also wasteful). Stoichiometric = perfect balance for complete combustion.
+
+**Oxygen Balance (OB%)** tells you if the propellant has excess or deficit oxygen:
+- OB = 0%: Exactly the right amount of oxygen for complete combustion
+- OB > 0%: Oxidizer-rich (excess O₂) → less efficient, but cleaner exhaust
+- OB < 0%: Fuel-rich (carbon-rich exhaust → black smoke)
+
+**Equivalence Ratio (φ)**:
+- φ = 1.0: Stoichiometric (perfect balance)
+- φ > 1.0: Fuel-rich
+- φ < 1.0: Oxidizer-rich
+
+**Why HPR propellants run slightly fuel-rich (φ ≈ 0.85–0.95):**
+Running slightly rich reduces the mean molecular weight of combustion products, which actually increases Isp even though combustion is incomplete. There's an optimal point that's slightly fuel-rich for most propellants.
+
+**Ref:** Sutton & Biblarz §5; Kubota (2007) §2"""
+    },
+    {
+        "tags": ["how do i","where do i start","beginner","new","first time","getting started","help","confused","dont understand","don't understand"],
+        "title": "Getting Started — How to Use NEXUS",
+        "answer": """**Welcome! Here's how to run your first simulation:**
+
+**Step 1 — Pick a propellant (sidebar, Section 1)**
+Start with **KNSB** — it's the most forgiving sugar propellant. The caption below shows key properties.
+
+**Step 2 — Set your grain geometry (sidebar, Section 2)**
+- Segments: Start with 2
+- Outer radius: Match your motor tube (e.g., 38 mm for a 76mm tube)
+- Inner radius: Start at ~40% of outer radius (e.g., 15 mm for 38 mm outer)
+- Length: 100–150 mm per segment is typical
+
+**Step 3 — Set your nozzle (sidebar, Section 3)**
+- Throat diameter: Start with 10–12 mm — you'll tune this
+- Exit diameter: 2× the throat diameter (gives expansion ratio ~4)
+
+**Step 4 — Leave efficiency sliders at defaults (Section 4)**
+η\\_c\\* = 0.95, η\\_DP = 0.97 are realistic starting values.
+
+**Step 5 — Pick a casing material and wall thickness (Section 5)**
+6061-T6 aluminum at 3 mm wall is a common starting point.
+
+**Step 6 — Click ⚡ EXECUTE SIMULATION**
+Read the results on the Command Center tab. Check:
+- Is SF (safety factor) ≥ 4? If not, increase wall thickness.
+- Is Min J ≥ 2.0? If not, increase inner radius.
+- Is the motor class what you expected?
+
+**Then iterate** — adjust throat size to hit your target Kn/pressure, adjust grain dimensions for desired burn time and total impulse."""
+    },
+]
+
+
+def _kb_search(query: str) -> dict:
+    """Find best matching KB entry for a user query."""
+    q = query.lower()
+    best, best_score = None, 0
+    for entry in _KB:
+        score = sum(1 for tag in entry["tags"] if tag in q)
+        # also check if any word in the query appears in the title
+        for word in q.split():
+            if len(word) > 3 and word in entry["title"].lower():
+                score += 2
+        if score > best_score:
+            best, best_score = entry, score
+    # fallback: return a helpful default
+    if best_score == 0:
+        return {
+            "title": "I'm not sure — try rephrasing",
+            "answer": """I didn't find an exact match. Try asking about one of these topics:
+
+**Propellant & Chemistry:**
+"What is c-star?" · "What is Isp?" · "What is KNSB?" · "What is APCP?" · "What is oxygen balance?" · "What is gamma?"
+
+**Grain & Geometry:**
+"What is a BATES grain?" · "What is Kn?" · "What is port-to-throat ratio?" · "What is burn profile?"
+
+**Nozzle & Flow:**
+"What is the throat?" · "What is expansion ratio?" · "What is dispersion?" · "What is chamber pressure?"
+
+**Burn Rate:**
+"What is saint-robert law?" · "What is a coefficient?" · "What is n exponent?"
+
+**Structural:**
+"What is safety factor?" · "What is hoop stress?" · "What is Von Mises?"
+
+**Results & Interface:**
+"How do I read results?" · "What is total impulse?" · "How do I use this?" · "What is the .eng file?"
+
+**Safety:**
+"What are decomposition temperatures?" · "What is the critical temperature?"
+"""
+        }
+    return best
+
+
+def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, ro_mm, ri_mm, L_mm, At_m2, Ae_m2, eta_cs, eta_dp, wall_mm, mat_key) -> None:
+    st.markdown('<div class="nexus-section">🤖 NEXUS Expert System — Ask Anything</div>', unsafe_allow_html=True)
+    st.markdown("""
+<div class="nexus-card" style="padding:0.75rem 1rem; margin-bottom:1rem;">
+<span style="font-family:Share Tech Mono,monospace; font-size:0.75rem; color:#8b949e;">
+💬 Ask in plain English — no API key needed. Try: <em>"What is c-star?"</em> · <em>"Why is my Kn too high?"</em> · <em>"Explain burn rate"</em> · <em>"How do I read results?"</em>
+</span>
+</div>
+""", unsafe_allow_html=True)
+
+    # Show active sim context if available
+    if res:
+        with st.expander('📊 Active Simulation Context (click to view)', expanded=False):
+            st.markdown(f"""
+**Propellant:** {(_prop or prop).name} ({(_prop or prop).abbr})
+**Grain:** {(_grain.n_seg if _grain else n_seg)}× BATES | ro = {(_grain.ro if _grain else ro_mm*1e-3)*1e3:.1f} mm | ri = {(_grain.ri0 if _grain else ri_mm*1e-3)*1e3:.1f} mm | L = {(_grain.L0 if _grain else L_mm*1e-3)*1e3:.1f} mm/seg
+**Results:** Class **{res['motor_class']}** | It = {res['total_impulse']:.1f} N·s | tb = {res['burn_time']:.3f} s | Fmax = {res['max_thrust']:.1f} N | Pc_max = {res['max_Pc_MPa']:.3f} MPa | Isp = {res['avg_Isp']:.1f} s | SF = {strct['SF_yield']:.2f}
+""")
+
+    # Suggested questions
+    st.markdown('<div style="font-family:Share Tech Mono,monospace; font-size:0.68rem; color:#4a6fa5; margin-bottom:0.5rem;">QUICK QUESTIONS:</div>', unsafe_allow_html=True)
+    q_cols = st.columns(3)
+    suggestions = [
+        "What is c-star?", "What is Kn?", "What is dispersion?",
+        "Explain burn rate law", "What is port-to-throat?", "How do I read results?",
+        "What is BATES grain?", "What is safety factor?", "How do I get started?",
+    ]
+    for i, sug in enumerate(suggestions):
+        if q_cols[i % 3].button(sug, key=f'sug_{i}'):
+            st.session_state.chat_hist.append({'role': 'user', 'content': sug})
+            result = _kb_search(sug)
+            answer = f"### {result['title']}\n\n{result['answer']}"
+            if res:
+                answer += _inject_sim_context(sug, res, strct, _prop or prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp)
+            st.session_state.chat_hist.append({'role': 'assistant', 'content': answer})
+            st.rerun()
+
+    # Chat history
+    for msg in st.session_state.chat_hist:
+        with st.chat_message(msg['role']):
+            st.markdown(msg['content'])
+
+    # Chat input
+    user_input = st.chat_input('Ask about rocketry, your simulation, equations, or anything else…')
+    if user_input:
+        st.session_state.chat_hist.append({'role': 'user', 'content': user_input})
+        with st.chat_message('user'):
+            st.markdown(user_input)
+
+        result = _kb_search(user_input)
+        answer = f"### {result['title']}\n\n{result['answer']}"
+        # Inject live simulation numbers into the answer if relevant
+        if res:
+            answer += _inject_sim_context(user_input, res, strct, _prop or prop, _grain, _At or At_m2, _ecs or eta_cs, _edp or eta_dp)
+
+        with st.chat_message('assistant'):
+            st.markdown(answer)
+        st.session_state.chat_hist.append({'role': 'assistant', 'content': answer})
+
+    if st.session_state.chat_hist:
+        if st.button('Clear chat', key='clear_chat'):
+            st.session_state.chat_hist = []
+            st.rerun()
+
+
+def _inject_sim_context(query: str, res: dict, strct: dict, prop, grain, At_m2: float, eta_cs: float, eta_dp: float) -> str:
+    """Append live simulation numbers to an answer when relevant."""
+    q = query.lower()
+    lines = []
+    if any(w in q for w in ['kn','klemmung','pressure','high','low','why','my']):
+        lines.append(f"\n\n---\n**📊 Your current simulation:** Max Kn = **{res['max_Kn']:.1f}** | Avg Pc = **{res['avg_Pc_MPa']:.2f} MPa** | Max Pc = **{res['max_Pc_MPa']:.2f} MPa**")
+    if any(w in q for w in ['safety','sf','structural','wall','casing','burst']):
+        lines.append(f"\n\n---\n**📊 Your current simulation:** SF\\_yield = **{strct['SF_yield']:.2f}** | σ\\_VM = **{strct['vm_MPa']:.1f} MPa** | Required t for SF=4: **{strct['t_req_SF4_mm']:.2f} mm**")
+    if any(w in q for w in ['isp','thrust','impulse','class','burn time','result']):
+        lines.append(f"\n\n---\n**📊 Your current simulation:** Class **{res['motor_class']}** | It = **{res['total_impulse']:.1f} N·s** | Fmax = **{res['max_thrust']:.1f} N** | Isp = **{res['avg_Isp']:.1f} s** | tb = **{res['burn_time']:.3f} s**")
+    return ''.join(lines)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
