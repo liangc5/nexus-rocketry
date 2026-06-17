@@ -141,8 +141,8 @@ PROPELLANTS: Dict[str, PropellantData] = {
         name='Potassium Nitrate / Sorbitol (65/35)',
         abbr='KNSB',
         composition={'KNO₃': 0.65, 'Sorbitol C₆H₁₄O₆': 0.35},
-        rho=1879, Tf=1720, gamma=1.131, MW=38.90,
-        cstar=889, Isp_vac=165, Isp_sl=130,
+        rho=1841, Tf=1609, gamma=1.131, MW=38.90,
+        cstar=889, Isp_vac=163, Isp_sl=130,
         burn_a=8.26, burn_n=0.319, P_min=1.0, P_max=10.0,
         OF_ratio=1.857, OB_pct=-10.4, equiv_ratio=1.12,
         cure_T='95–115 °C (melt-cast, solidification only)',
@@ -386,8 +386,8 @@ class InternalBallistics:
         return (self.prop.rho * a_SI * self.cstar_eff * Kn) ** (1.0 / (1.0 - n))
 
     def mass_flow(self, Pc_Pa: float) -> float:
-        """Choked nozzle ṁ (kg/s): ṁ = Pc·At·Γ / √(Tf·Rsp)"""
-        return (Pc_Pa * self.At * self.Gamma) / math.sqrt(self.prop.Tf * self.R_sp)
+        """Choked nozzle ṁ (kg/s): ṁ = Pc·At / c*_eff  (consistent with QSS pressure derivation)"""
+        return (Pc_Pa * self.At) / self.cstar_eff
 
     def run(self, dt_s: float = 5e-4, max_time: float = 600.0) -> Dict:
         """
@@ -705,7 +705,7 @@ def generate_eng(res: Dict, prop: PropellantData, grain: BATESGrain,
     diam_mm = grain.ro * 2 * 1e3
     len_mm  = grain.L0 * 1e3 * grain.n_seg
     prop_kg = grain.initial_mass(prop.rho)
-    tot_kg  = prop_kg * 1.85   # estimate structural mass fraction
+    tot_kg  = st.session_state.get('_launch_mass_kg', prop_kg * 1.85)
 
     t_a, F_a = res['t'], res['F']
     if len(t_a) > 200:
@@ -718,7 +718,7 @@ def generate_eng(res: Dict, prop: PropellantData, grain: BATESGrain,
         f'; Generated : {datetime.now().strftime("%Y-%m-%d %H:%M UTC")}',
         f'; Propellant: {prop.name}',
         f'; Grain     : {grain.n_seg}×BATES  ro={grain.ro*1e3:.2f}mm  ri={grain.ri0*1e3:.2f}mm  L={grain.L0*1e3:.2f}mm/seg',
-        f'; Nozzle    : At={At_m2*1e6:.3f}mm²  ε={res.get("Cf_sl",0)/res.get("Cf_sl",1):.3f}',
+        f'; Nozzle    : At={At_m2*1e6:.3f}mm²  ε={res.get("Cf_sl",0):.5f} (Cf_sl)',
         f'; a={prop.burn_a}  n={prop.burn_n}  c*_theory={prop.cstar}m/s  c*_eff={res.get("cstar_eff",prop.cstar):.1f}m/s',
         f'; ρ_p={prop.rho}kg/m³  Tf={prop.Tf}K  γ={prop.gamma}  MW={prop.MW}g/mol',
         f'; Γ={res.get("Gamma",0):.5f}  Cf_sl={res.get("Cf_sl",0):.5f}',
@@ -1833,9 +1833,10 @@ def main() -> None:
             st.session_state.eta_cs     = eta_cs
             st.session_state.eta_dp     = eta_dp
             st.session_state.mtr_name   = mtr_name
-            st.session_state.prop_key   = prop_key
-            st.session_state.mat_key    = mat_key
-            st.session_state.sim_temp_C = sim_temp_C
+            st.session_state.prop_key       = prop_key
+            st.session_state.mat_key        = mat_key
+            st.session_state.sim_temp_C     = sim_temp_C
+            st.session_state._launch_mass_kg = launch_mass_kg
 
             # Flight trajectory
             prop_mass_kg = grain.initial_mass(prop.rho)
@@ -2182,7 +2183,6 @@ def main() -> None:
                     data=eng_text,
                     file_name=f'{_mtr or mtr_name}_{res["motor_class"]}.eng',
                     mime='text/plain',
-                    use_container_width=True,
                 )
                 st.code(eng_text[:1200] + '\n; … [truncated] …', language='text')
 
@@ -2268,36 +2268,47 @@ def main() -> None:
         if res is None:
             st.info('Run a simulation first to enable sensitivity analysis.')
         else:
-            _dt_range = st.slider('Throat Δ range (mm)', min_value=0.5, max_value=5.0, value=2.0, step=0.5)
-            _n_steps = 5
-            _dt_vals = [round(Dt_mm - _dt_range + i * 2 * _dt_range / (_n_steps - 1), 2) for i in range(_n_steps)]
-            _sens_results = []
-            with st.spinner('Running sensitivity sweep…'):
-                for _dv in _dt_vals:
-                    if _dv <= 0:
-                        _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
-                        continue
-                    try:
-                        _at_v = math.pi * (_dv * 1e-3 / 2) ** 2
-                        _ae_v = math.pi * (De_mm * 1e-3 / 2) ** 2
-                        _grain_v = BATESGrain(ro_mm * 1e-3, ri_mm * 1e-3, L_mm * 1e-3, int(n_seg))
-                        _ib_v = InternalBallistics(prop, _grain_v, _at_v, _ae_v, eta_cs, eta_dp)
-                        _res_v = _ib_v.run(dt_s=dt_s)
-                        _sens_results.append(_res_v)
-                    except Exception:
-                        _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
+            _METRIC_LABELS = {'max_Pc_MPa': 'Max Pressure (MPa)', 'avg_Isp': 'Avg Isp (s)',
+                              'total_impulse': 'Total Impulse (N·s)', 'burn_time': 'Burn Time (s)'}
+            _sc1, _sc2 = st.columns(2)
+            _dt_range = _sc1.slider('Throat Δ range (mm)', min_value=0.5, max_value=5.0, value=2.0, step=0.5)
+            _metric_sel = _sc2.selectbox('Metric', list(_METRIC_LABELS.keys()),
+                                         format_func=lambda k: _METRIC_LABELS[k])
+            _run_sens = st.button('▶ Run Sensitivity Sweep', type='secondary', use_container_width=True)
+            if _run_sens or st.session_state.get('_sens_cache_key') == (Dt_mm, _dt_range, prop_key):
+                _n_steps = 5
+                _dt_vals = [round(Dt_mm - _dt_range + i * 2 * _dt_range / (_n_steps - 1), 2) for i in range(_n_steps)]
+                if _run_sens:
+                    _sens_results = []
+                    _sens_errors = []
+                    with st.spinner('Running 5-point sensitivity sweep…'):
+                        for _dv in _dt_vals:
+                            if _dv <= 0:
+                                _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
+                                _sens_errors.append(f'Dt={_dv:.2f}mm: invalid (≤0)')
+                                continue
+                            try:
+                                _at_v = math.pi * (_dv * 1e-3 / 2) ** 2
+                                _ae_v = math.pi * (De_mm * 1e-3 / 2) ** 2
+                                _grain_v = BATESGrain(ro_mm * 1e-3, ri_mm * 1e-3, L_mm * 1e-3, int(n_seg))
+                                _ib_v = InternalBallistics(prop, _grain_v, _at_v, _ae_v, eta_cs, eta_dp)
+                                _sens_results.append(_ib_v.run(dt_s=dt_s))
+                                _sens_errors.append(None)
+                            except Exception as _e:
+                                _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
+                                _sens_errors.append(f'Dt={_dv:.2f}mm: {_e}')
+                    st.session_state['_sens_results'] = _sens_results
+                    st.session_state['_sens_dt_vals'] = _dt_vals
+                    st.session_state['_sens_cache_key'] = (Dt_mm, _dt_range, prop_key)
+                    for _err in _sens_errors:
+                        if _err: st.caption(f'⚠ {_err}')
 
-            _metric_sel = st.selectbox('Metric', ['max_Pc_MPa', 'avg_Isp', 'total_impulse', 'burn_time'],
-                                       format_func=lambda k: {'max_Pc_MPa': 'Max Pressure (MPa)',
-                                                               'avg_Isp': 'Avg Isp (s)',
-                                                               'total_impulse': 'Total Impulse (N·s)',
-                                                               'burn_time': 'Burn Time (s)'}[k])
-            st.plotly_chart(plot_sensitivity(_sens_results, 'Throat Diameter (mm)', _dt_vals,
-                                            _metric_sel, {'max_Pc_MPa': 'Max Pressure (MPa)',
-                                                          'avg_Isp': 'Avg Isp (s)',
-                                                          'total_impulse': 'Total Impulse (N·s)',
-                                                          'burn_time': 'Burn Time (s)'}[_metric_sel]),
-                            width='stretch')
+                _sens_results = st.session_state.get('_sens_results', [])
+                _dt_vals = st.session_state.get('_sens_dt_vals', [])
+                if _sens_results and _dt_vals:
+                    st.plotly_chart(plot_sensitivity(_sens_results, 'Throat Diameter (mm)', _dt_vals,
+                                                    _metric_sel, _METRIC_LABELS[_metric_sel]),
+                                    width='stretch')
 
     # ── TAB 8 — KNOWLEDGE BASE ───────────────────────────────────────────
     with tab_kb:
@@ -3162,7 +3173,7 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
         sf_col = "🟢" if strct and strct['SF_yield'] >= 4 else "🟡" if strct and strct['SF_yield'] >= 2 else "🔴"
         st.markdown(f"""
 <div style="background:rgba(0,212,255,0.06); border:1px solid #1a3a60; border-radius:8px; padding:0.7rem 1.1rem; margin-bottom:1rem; font-family:Share Tech Mono,monospace; font-size:0.78rem; color:#a0d8ef;">
-📊 <strong>Active sim:</strong> {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · It = {res['total_impulse']:.1f} N·s · Pc_max = {res['max_Pc_MPa']:.2f} MPa · Isp = {res['avg_Isp']:.1f} s · Kn_max = {res['max_Kn']:.0f} · {sf_col} SF = {strct['SF_yield']:.2f if strct else '—'}
+📊 <strong>Active sim:</strong> {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · It = {res['total_impulse']:.1f} N·s · Pc_max = {res['max_Pc_MPa']:.2f} MPa · Isp = {res['avg_Isp']:.1f} s · Kn_max = {res['max_Kn']:.0f} · {sf_col} SF = {f"{strct['SF_yield']:.2f}" if strct else '—'}
 </div>
 """, unsafe_allow_html=True)
 
