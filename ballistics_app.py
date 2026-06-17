@@ -66,6 +66,7 @@ _GRN = '#39ff14'
 _RED = '#ff2d55'
 _TXT = '#c9d1d9'
 _DIM = '#8b949e'
+_PRP = '#a78bfa'
 
 # Pre-computed rgba fill variants (alpha=0.08)
 _FILL = {
@@ -562,8 +563,123 @@ class StructuralAnalysis:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# FLIGHT TRAJECTORY SIMULATOR
+# ═══════════════════════════════════════════════════════════════════════════
+
+class FlightTrajectory:
+    """1D rocket flight simulation along a fixed launch angle using ISA atmosphere."""
+
+    def __init__(self, t_arr, F_arr, prop_mass_kg, dry_mass_kg, Cd, body_diam_m,
+                 launch_angle_deg=90):
+        self.t_arr = np.array(t_arr, dtype=float)
+        self.F_arr = np.array(F_arr, dtype=float)
+        self.prop_mass_kg = float(prop_mass_kg)
+        self.dry_mass_kg = float(dry_mass_kg)
+        self.Cd = float(Cd)
+        self.ref_area = math.pi * (float(body_diam_m) / 2.0) ** 2
+        self.burn_time = float(self.t_arr[-1] - self.t_arr[0])
+        self.sin_angle = math.sin(math.radians(float(launch_angle_deg)))
+
+    def _isa_density(self, h):
+        T0, P0, R, L, g = 288.15, 101325.0, 287.058, 0.0065, G0
+        h = max(h, 0.0)
+        if h <= 11000.0:
+            T = T0 - L * h
+            P = P0 * (T / T0) ** (g / (L * R))
+        else:
+            T11 = T0 - L * 11000.0
+            P11 = P0 * (T11 / T0) ** (g / (L * R))
+            T = T11
+            P = P11 * math.exp(-g * (h - 11000.0) / (R * T))
+        return P / (R * T)
+
+    def _thrust(self, t):
+        if t < self.t_arr[0] or t > self.t_arr[-1]:
+            return 0.0
+        return float(np.interp(t, self.t_arr, self.F_arr))
+
+    def _prop_mass(self, t):
+        if t <= self.t_arr[0]: return self.prop_mass_kg
+        if t >= self.t_arr[-1]: return 0.0
+        return self.prop_mass_kg * (1.0 - (t - self.t_arr[0]) / self.burn_time)
+
+    def run(self, dt=0.05):
+        alt, vel, t = 0.0, 0.0, 0.0
+        t_h, alt_h, vel_h = [t], [alt], [vel]
+        burnout_alt, burnout_time, apogee_time, past_apogee = None, None, None, False
+        burn_end = float(self.t_arr[-1])
+
+        while True:
+            m = self.dry_mass_kg + self._prop_mass(t)
+            F = self._thrust(t)
+            rho = self._isa_density(alt)
+            drag = 0.5 * rho * self.Cd * self.ref_area * vel * abs(vel)
+            a = (F - drag) / m - G0 * self.sin_angle
+            if burnout_alt is None and t >= burn_end:
+                burnout_alt, burnout_time = alt, t
+            if not past_apogee and vel < 0.0 and t > 0.1:
+                past_apogee, apogee_time = True, t
+            vel += a * dt
+            alt += vel * self.sin_angle * dt
+            t += dt
+            if past_apogee and alt <= 0.0:
+                alt = 0.0
+                t_h.append(t); alt_h.append(alt); vel_h.append(vel)
+                break
+            if t > 600.0: break
+            t_h.append(t); alt_h.append(alt); vel_h.append(vel)
+
+        max_alt = max(alt_h)
+        max_vel = max(abs(v) for v in vel_h)
+        if apogee_time is None:
+            apogee_time = t_h[alt_h.index(max_alt)]
+        if burnout_alt is None:
+            burnout_alt, burnout_time = 0.0, 0.0
+        coast = apogee_time - burnout_time if burnout_time else 0.0
+        return {
+            't': np.array(t_h), 'altitude_m': np.array(alt_h), 'velocity_ms': np.array(vel_h),
+            'max_altitude_m': max_alt, 'max_velocity_ms': max_vel,
+            'burnout_altitude_m': burnout_alt, 'burnout_time_s': burnout_time,
+            'time_to_apogee_s': apogee_time, 'flight_time_s': t_h[-1],
+            'coast_time_s': coast,
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
+
+def apply_nozzle_erosion(At_initial_m2: float, t_s: float, erosion_rate_mm2_per_s: float) -> float:
+    return At_initial_m2 + erosion_rate_mm2_per_s * 1e-6 * t_s
+
+
+def burn_rate_at_temp(prop_burn_a, prop_burn_n, Pc_Pa, T_propellant_C, T_ref_C=20.0, sigma_p=0.003):
+    r_ref = prop_burn_a * (Pc_Pa / MPA) ** prop_burn_n * 1e-3
+    return r_ref * math.exp(sigma_p * (T_propellant_C - T_ref_C))
+
+
+def render_validation_warnings(ro_mm, ri_mm, L_mm, n_seg, Dt_mm, De_mm, wall_mm, prop, mat_key):
+    w = []
+    if ri_mm >= ro_mm:
+        w.append('FATAL: Core radius ri >= outer radius ro — impossible geometry.')
+    if ri_mm / ro_mm < 0.20:
+        w.append('Very thick web (ri/ro < 0.2) — strongly progressive burn, Kn spike likely.')
+    if ri_mm / ro_mm > 0.75:
+        w.append('Very thin web (ri/ro > 0.75) — short burn, near-burnout erosive risk.')
+    if L_mm / (2 * ri_mm) > 8:
+        w.append(f'Long grain: L/D_port = {L_mm/(2*ri_mm):.1f} > 8 — high erosive burning risk, check J ratio.')
+    if De_mm <= Dt_mm:
+        w.append('Nozzle exit diameter <= throat diameter — impossible geometry.')
+    if De_mm / Dt_mm > 6:
+        w.append(f'Very high expansion ratio ε = {(De_mm/Dt_mm)**2:.1f} — likely over-expanded at sea level.')
+    if wall_mm < 1.5:
+        w.append(f'Wall thickness {wall_mm:.2f} mm is dangerously thin. Aim for SF ≥ 4.')
+    if n_seg * L_mm > 600:
+        w.append(f'Total grain length {n_seg*L_mm:.0f} mm > 600 mm — verify structural integrity.')
+    if prop.burn_n >= 0.90:
+        w.append(f'Burn exponent n = {prop.burn_n} is near the instability limit (n ≥ 1). CATO risk.')
+    return w
+
 
 def motor_class(It_Ns: float) -> str:
     thresholds = [
@@ -815,6 +931,185 @@ def plot_structural(struct_arr: List[Tuple], peak_Pc: float) -> go.Figure:
                       xaxis=dict(title='Casing Material', **NEXUS_AXIS),
                       yaxis=dict(title='Stress (MPa)', **NEXUS_AXIS))
     return fig
+
+
+def plot_flight(flight_res: dict) -> go.Figure:
+    fig = make_subplots(rows=1, cols=2,
+                        subplot_titles=('Altitude (m)', 'Velocity (m/s)'),
+                        horizontal_spacing=0.12)
+    t = flight_res['t']
+    alt = flight_res['altitude_m']
+    vel = flight_res['velocity_ms']
+    t_bo = flight_res.get('burnout_time_s')
+    t_ap = flight_res.get('time_to_apogee_s')
+    alt_ap = flight_res.get('max_altitude_m')
+
+    fig.add_trace(go.Scatter(x=t, y=alt, mode='lines', name='Altitude',
+                             line=dict(color=_CYN, width=2),
+                             fill='tozeroy', fillcolor='rgba(0,212,255,0.08)'), row=1, col=1)
+    fig.add_trace(go.Scatter(x=t, y=vel, mode='lines', name='Velocity',
+                             line=dict(color=_ORG, width=2)), row=1, col=2)
+    if t_bo:
+        for col in (1, 2):
+            fig.add_vline(x=t_bo, line=dict(color=_ORG, width=1.5, dash='dash'),
+                          annotation_text='Burnout' if col == 1 else '',
+                          annotation_position='top right',
+                          annotation_font=dict(color=_ORG, size=10), row=1, col=col)
+    if t_ap and alt_ap:
+        fig.add_trace(go.Scatter(x=[t_ap], y=[alt_ap], mode='markers+text',
+                                 name='Apogee', marker=dict(color=_GRN, size=10, symbol='diamond'),
+                                 text=['Apogee'], textposition='top center',
+                                 textfont=dict(color=_GRN, size=10)), row=1, col=1)
+    fig.update_xaxes(**NEXUS_AXIS, title_text='Time (s)')
+    fig.update_yaxes(**NEXUS_AXIS, title_text='Altitude (m)', row=1, col=1)
+    fig.update_yaxes(**NEXUS_AXIS, title_text='Velocity (m/s)', row=1, col=2)
+    fig.update_layout(**NEXUS_LAYOUT,
+                      title_text='<b>NEXUS — Flight Trajectory</b>',
+                      title_font=dict(color=_CYN, size=14))
+    return fig
+
+
+def plot_sensitivity(results_list: list, param_label: str, param_vals: list,
+                     metric_key: str, metric_label: str) -> go.Figure:
+    n = len(param_vals)
+    center = n // 2
+    vals = [r.get(metric_key, 0) for r in results_list]
+    colors = [_CYN if i == center else 'rgba(167,139,250,0.35)' for i in range(n)]
+    fig = go.Figure(go.Bar(
+        x=[str(v) for v in param_vals], y=vals,
+        marker=dict(color=colors, line=dict(color=[_CYN if i == center else _PRP for i in range(n)], width=1.5)),
+        hovertemplate=f'{param_label}: %{{x}}<br>{metric_label}: %{{y:.2f}}<extra></extra>',
+    ))
+    fig.update_layout(**NEXUS_LAYOUT,
+                      title_text=f'<b>Sensitivity: {metric_label} vs {param_label}</b>',
+                      title_font=dict(color=_CYN, size=14),
+                      xaxis=dict(title=param_label, **NEXUS_AXIS),
+                      yaxis=dict(title=metric_label, **NEXUS_AXIS),
+                      showlegend=False)
+    return fig
+
+
+def plot_grain_cross_section(ro_mm: float, ri_mm: float, n_steps: int = 6) -> go.Figure:
+    theta = np.linspace(0, 2 * math.pi, 360)
+    cos_t, sin_t = np.cos(theta), np.sin(theta)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=ro_mm * cos_t, y=ro_mm * sin_t, mode='lines',
+                             fill='toself', fillcolor='rgba(160,160,160,0.25)',
+                             line=dict(color='#aaaaaa', width=2),
+                             name=f'Propellant (ro={ro_mm:.1f} mm)'))
+    radii = np.linspace(ri_mm, ro_mm * 0.97, n_steps)
+    for i, r in enumerate(radii):
+        frac = i / max(n_steps - 1, 1)
+        c_r, c_g, c_b = int(frac * 80), int(212 - frac * 180), int(255 - frac * 120)
+        alpha = 0.9 - frac * 0.55
+        color = f'rgba({c_r},{c_g},{c_b},{alpha:.2f})'
+        label = (f'Core initial (ri={ri_mm:.1f} mm)' if i == 0 else
+                 f'Near burnout (r≈{r:.1f} mm)' if i == n_steps - 1 else
+                 f'Step {i+1} (r={r:.1f} mm)')
+        fig.add_trace(go.Scatter(x=r * cos_t, y=r * sin_t, mode='lines',
+                                 line=dict(color=color, width=2.5 if i == 0 else 1.2,
+                                           dash='solid' if i == 0 else 'dot'),
+                                 name=label))
+    pad = ro_mm * 1.3
+    fig.update_layout(**{**NEXUS_LAYOUT,
+                         'title': dict(text=f'BATES Grain Cross-Section  ·  ro={ro_mm:.1f} mm  ri={ri_mm:.1f} mm',
+                                       font=dict(color=_CYN, size=13)),
+                         'xaxis': dict(range=[-pad, pad], scaleanchor='y', scaleratio=1,
+                                       showgrid=False, zeroline=False, showticklabels=False),
+                         'yaxis': dict(range=[-pad, pad], showgrid=False, zeroline=False, showticklabels=False),
+                         'height': 460,
+                         'legend': dict(x=1.02, y=0.98, font=dict(size=9),
+                                        bgcolor='rgba(0,0,0,0)', bordercolor='rgba(255,255,255,0.1)', borderwidth=1)})
+    return fig
+
+
+def plot_overlay(overlay_sims: list) -> go.Figure:
+    fig = go.Figure()
+    for sim in overlay_sims:
+        label = f"{sim['label']} — {sim['motor_class']} ({sim['total_impulse']:.1f} N·s)"
+        fig.add_trace(go.Scatter(x=sim['t'], y=sim['F'], mode='lines', name=label,
+                                 line=dict(color=sim['color'], width=2),
+                                 hovertemplate='<b>%{fullData.name}</b><br>Time: %{x:.3f}s<br>Thrust: %{y:.1f}N<extra></extra>'))
+    fig.update_layout(**NEXUS_LAYOUT,
+                      title_text='<b>Thrust Curve Overlay</b>', title_font=dict(color=_CYN, size=14),
+                      xaxis=dict(title='Time (s)', **NEXUS_AXIS),
+                      yaxis=dict(title='Thrust (N)', **NEXUS_AXIS))
+    return fig
+
+
+def plot_temp_sensitivity(prop: 'PropellantData') -> go.Figure:
+    T_vals = [-10.0, 20.0, 50.0]
+    colors = {-10.0: _PRP, 20.0: _CYN, 50.0: _ORG}
+    labels = {-10.0: 'Cold (−10 °C)', 20.0: 'Nominal (20 °C)', 50.0: 'Hot (50 °C)'}
+    P_Pa = np.linspace(prop.P_min * MPA, prop.P_max * MPA, 200)
+    fig = go.Figure()
+    for T in T_vals:
+        rates = [burn_rate_at_temp(prop.burn_a, prop.burn_n, P, T) * 1e3 for P in P_Pa]
+        fig.add_trace(go.Scatter(x=P_Pa / MPA, y=rates, mode='lines',
+                                 name=labels[T], line=dict(color=colors[T], width=2,
+                                                           dash='solid' if T == 20.0 else 'dash')))
+    fig.update_layout(**NEXUS_LAYOUT,
+                      title_text='<b>Temperature Sensitivity — Burn Rate</b>',
+                      title_font=dict(color=_CYN, size=14),
+                      xaxis=dict(title='Chamber Pressure (MPa)', **NEXUS_AXIS),
+                      yaxis=dict(title='Burn Rate (mm/s)', **NEXUS_AXIS))
+    return fig
+
+
+def store_sim_overlay(res: dict, prop_abbr: str, label: str) -> None:
+    _OVERLAY_COLORS = [_CYN, _ORG, _GRN, _PRP]
+    if 'overlay_sims' not in st.session_state:
+        st.session_state.overlay_sims = []
+    sims = st.session_state.overlay_sims
+    entry = {
+        'label': label, 'prop_abbr': prop_abbr,
+        't': res['t'], 'F': res['F'], 'Pc': res['Pc'], 'Kn': res['Kn'],
+        'motor_class': res['motor_class'],
+        'total_impulse': res['total_impulse'],
+        'burn_time': res['burn_time'],
+        'color': _OVERLAY_COLORS[len(sims) % len(_OVERLAY_COLORS)],
+    }
+    if len(sims) >= 4:
+        sims.pop(0)
+    sims.append(entry)
+
+
+def render_overlay_controls() -> None:
+    sims = st.session_state.get('overlay_sims', [])
+    if not sims:
+        st.caption('No simulations stored. Run a simulation and click "Add to Overlay".')
+        return
+    for sim in sims:
+        c1, c2 = st.columns([0.04, 0.96])
+        with c1:
+            st.markdown(f"<div style='width:12px;height:12px;border-radius:3px;background:{sim['color']};margin-top:5px'></div>",
+                        unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"**{sim['label']}** — {sim['motor_class']}, {sim['total_impulse']:.1f} N·s, "
+                        f"burn {sim['burn_time']:.2f}s ({sim['prop_abbr']})")
+    st.caption(f"{len(sims)}/4 slots used.")
+    if st.button('Clear All Overlays', type='secondary'):
+        st.session_state.overlay_sims = []
+        st.rerun()
+
+
+def get_url_params() -> dict:
+    params = st.query_params
+    req = {'prop', 'nseg', 'ro', 'ri', 'L', 'Dt', 'De', 'ecs', 'edp', 'wall', 'mat', 'dt', 'mtr'}
+    if not req.issubset(set(params.keys())):
+        return {}
+    try:
+        return {
+            'prop_key': str(params['prop']), 'n_seg': int(params['nseg']),
+            'ro_mm': float(params['ro']), 'ri_mm': float(params['ri']),
+            'L_mm': float(params['L']), 'Dt_mm': float(params['Dt']),
+            'De_mm': float(params['De']), 'eta_cs': float(params['ecs']),
+            'eta_dp': float(params['edp']), 'wall_mm': float(params['wall']),
+            'mat_key': str(params['mat']), 'dt_us': float(params['dt']),
+            'mtr_name': str(params['mtr']),
+        }
+    except (KeyError, ValueError):
+        return {}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1163,6 +1458,19 @@ def inject_css() -> None:
   color: #86efac;
   line-height: 1.5;
 }}
+@media (max-width: 768px) {{
+  [data-testid="stSidebar"] {{ width: auto !important; min-width: unset !important; max-width: unset !important; }}
+  .nexus-h1 {{ font-size: 1.3rem !important; }}
+  .kv-row {{ flex-direction: column !important; }}
+  .nexus-card {{ padding: 0.7rem !important; }}
+  [data-testid="stMetricValue"] {{ font-size: 1.3rem !important; }}
+  .stTabs [data-baseweb="tab"] {{ font-size: 0.7rem !important; }}
+}}
+@media (max-width: 480px) {{
+  .nexus-h1 {{ font-size: 1.1rem !important; }}
+  .motor-badge {{ font-size: 1.2rem !important; }}
+  #stars, #stars2, #stars3 {{ display: none !important; animation: none !important; }}
+}}
 </style>
 <div id="stars"></div>
 <div id="stars2"></div>
@@ -1372,10 +1680,19 @@ def main() -> None:
     nexus_header()
 
     # ── Session state initialisation ────────────────────────────────────
-    if 'results'     not in st.session_state: st.session_state.results     = None
-    if 'struct_rpt'  not in st.session_state: st.session_state.struct_rpt  = None
-    if 'chat_hist'   not in st.session_state: st.session_state.chat_hist   = []
-    if 'api_key'     not in st.session_state: st.session_state.api_key     = ''
+    if 'results'        not in st.session_state: st.session_state.results        = None
+    if 'struct_rpt'     not in st.session_state: st.session_state.struct_rpt     = None
+    if 'chat_hist'      not in st.session_state: st.session_state.chat_hist      = []
+    if 'api_key'        not in st.session_state: st.session_state.api_key        = ''
+    if 'flight_res'     not in st.session_state: st.session_state.flight_res     = None
+    if 'overlay_sims'   not in st.session_state: st.session_state.overlay_sims   = []
+    if 'loaded_design'  not in st.session_state: st.session_state.loaded_design  = None
+
+    # Load URL params on first visit
+    _url = get_url_params()
+    if _url and not st.session_state.get('_url_loaded'):
+        st.session_state.update(_url)
+        st.session_state._url_loaded = True
 
     # ══════════════════════════════════════════════════════════════════════
     # SIDEBAR — CONFIGURATION PANEL
@@ -1438,6 +1755,53 @@ def main() -> None:
         mtr_name = st.text_input('Motor designation', value='NEXUS-01',
             help='Name/label for your motor — appears in exported .ENG files and data exports. Use any designation you like, e.g. NEXUS-H220.')
 
+        # ── Section 7: Flight & Mission ─────────────────────────────────
+        st.markdown('<p class="nexus-section">7 · Flight & Mission</p>', unsafe_allow_html=True)
+        launch_mass_kg = st.number_input('Total liftoff mass (kg)', min_value=0.1, max_value=50.0, value=2.0, step=0.1,
+            help='Dry rocket mass + propellant. Includes motor casing, airframe, fins, nose, recovery system.')
+        drag_cd = st.number_input('Drag coefficient Cd', min_value=0.05, max_value=2.0, value=0.45, step=0.01,
+            help='Axial drag coefficient. Typical values: 0.3–0.45 for streamlined rockets, 0.5–0.7 for blunt shapes.')
+        body_diam_mm = st.number_input('Body diameter (mm)', min_value=20.0, max_value=300.0, value=76.0, step=1.0,
+            help='Outer diameter of the rocket body tube. Used to compute reference area for drag calculation.')
+        launch_angle_off = st.slider('Launch angle from vertical (°)', min_value=0, max_value=30, value=0, step=1,
+            help='0° = perfectly vertical. Small off-vertical angles account for launch rod cant.')
+        sim_temp_C = st.number_input('Propellant temperature (°C)', min_value=-40.0, max_value=60.0, value=20.0, step=1.0,
+            help='Propellant storage temperature. Hotter propellant burns faster (σ_p ≈ 0.3%/°C). Affects temperature sensitivity chart.')
+
+        # Validation warnings
+        _warnings = render_validation_warnings(ro_mm, ri_mm, L_mm, int(n_seg), Dt_mm, De_mm, wall_mm, prop, mat_key)
+        for _w in _warnings:
+            st.markdown(f'<div class="warn-box">⚠ {_w}</div>', unsafe_allow_html=True)
+
+        # ── Section 8: Save / Load ──────────────────────────────────────
+        st.markdown('<p class="nexus-section">8 · Save / Load</p>', unsafe_allow_html=True)
+        _design_dict = {
+            'prop_key': prop_key, 'n_seg': int(n_seg), 'ro_mm': ro_mm, 'ri_mm': ri_mm,
+            'L_mm': L_mm, 'Dt_mm': Dt_mm, 'De_mm': De_mm, 'eta_cs': eta_cs, 'eta_dp': eta_dp,
+            'wall_mm': wall_mm, 'mat_key': mat_key, 'dt_us': dt_us, 'mtr_name': mtr_name,
+        }
+        st.download_button('💾 Save design as JSON', data=json.dumps(_design_dict, indent=2),
+                           file_name=f'{mtr_name}_design.json', mime='application/json', use_container_width=True)
+        _uploaded = st.file_uploader('📂 Load design from JSON', type='json')
+        if _uploaded is not None:
+            try:
+                _loaded = json.load(_uploaded)
+                st.session_state.loaded_design = _loaded
+                st.success('Design loaded — click Execute to apply.')
+            except Exception:
+                st.error('Invalid JSON file.')
+        if st.button('📋 Generate shareable link', use_container_width=True):
+            _qp = {k.replace('_key','').replace('_mm','').replace('_us','').replace('_',''):
+                   str(v) for k,v in _design_dict.items()}
+            # Use shortened keys
+            st.query_params.update({
+                'prop': prop_key, 'nseg': str(int(n_seg)), 'ro': str(ro_mm), 'ri': str(ri_mm),
+                'L': str(L_mm), 'Dt': str(Dt_mm), 'De': str(De_mm), 'ecs': str(eta_cs),
+                'edp': str(eta_dp), 'wall': str(wall_mm), 'mat': mat_key,
+                'dt': str(dt_us), 'mtr': mtr_name,
+            })
+            st.success('URL updated — copy from your browser address bar.')
+
         # ── RUN BUTTON ──────────────────────────────────────────────────
         st.markdown('<br>', unsafe_allow_html=True)
         run_btn = st.button('⚡ EXECUTE SIMULATION', use_container_width=True, type='primary')
@@ -1471,6 +1835,22 @@ def main() -> None:
             st.session_state.mtr_name   = mtr_name
             st.session_state.prop_key   = prop_key
             st.session_state.mat_key    = mat_key
+            st.session_state.sim_temp_C = sim_temp_C
+
+            # Flight trajectory
+            prop_mass_kg = grain.initial_mass(prop.rho)
+            _dry_mass = max(launch_mass_kg - prop_mass_kg, 0.1)
+            ft = FlightTrajectory(
+                t_arr=res['t'], F_arr=res['F'],
+                prop_mass_kg=prop_mass_kg, dry_mass_kg=_dry_mass,
+                Cd=drag_cd, body_diam_m=body_diam_mm * 1e-3,
+                launch_angle_deg=90 - launch_angle_off,
+            )
+            with st.spinner('🚀 Running flight trajectory…'):
+                st.session_state.flight_res = ft.run()
+
+            # Add to overlay
+            store_sim_overlay(res, prop.abbr, f'{mtr_name} ({res["motor_class"]})')
 
         except Exception as exc:
             st.error(f'Simulation error: {exc}')
@@ -1479,12 +1859,14 @@ def main() -> None:
     # ══════════════════════════════════════════════════════════════════════
     # TABS
     # ══════════════════════════════════════════════════════════════════════
-    tab_cmd, tab_grain, tab_br, tab_struct, tab_export, tab_kb, tab_ai = st.tabs([
+    tab_cmd, tab_grain, tab_br, tab_struct, tab_export, tab_flight, tab_sens, tab_kb, tab_ai = st.tabs([
         '⚡ Command Center',
         '📐 Grain Regression',
         '🔥 Burn Rate Law',
         '🔩 Structural Margin',
         '📥 Data Export',
+        '🚀 Flight Trajectory',
+        '🔍 Sensitivity & Overlay',
         '📚 Knowledge Base',
         '🤖 AI Mentor',
     ])
@@ -1561,13 +1943,19 @@ def main() -> None:
                 st.markdown('<div class="danger-box">🛑 Structural safety factor SF < 2.0 — Casing design is UNSAFE. Increase wall thickness immediately.</div>', unsafe_allow_html=True)
 
             # Metrics row
-            c1, c2, c3, c4, c5, c6 = st.columns(6)
+            _tw = res['max_thrust'] / (launch_mass_kg * G0)
+            c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
             c1.metric('Total Impulse', f'{res["total_impulse"]:.1f} N·s')
             c2.metric('Max Thrust', f'{res["max_thrust"]:.1f} N')
             c3.metric('Max Pc', f'{res["max_Pc_MPa"]:.3f} MPa')
             c4.metric('Avg Isp', f'{res["avg_Isp"]:.1f} s')
             c5.metric('Burn Time', f'{res["burn_time"]:.3f} s')
             c6.metric('Struct. SF', f'{strct["SF_yield"]:.2f}' if strct else 'N/A')
+            c7.metric('Max T/W', f'{_tw:.2f}', delta='✅ LIFTS OFF' if _tw > 5 else '⚠ LOW T/W' if _tw > 1 else '❌ NO LIFTOFF')
+            if _tw < 1:
+                st.markdown('<div class="danger-box">🛑 T/W < 1.0 — Rocket will NOT lift off. Increase thrust or reduce mass.</div>', unsafe_allow_html=True)
+            elif _tw < 5:
+                st.markdown('<div class="warn-box">⚠ T/W < 5.0 — Low thrust-to-weight. Rocket may weathercock or fail to clear the launch rod cleanly. Aim for T/W ≥ 5.</div>', unsafe_allow_html=True)
 
             # Overview chart
             st.plotly_chart(plot_overview(res, _prop.abbr if _prop else 'Motor'), width='stretch')
@@ -1651,6 +2039,10 @@ def main() -> None:
 </div>
 """, unsafe_allow_html=True)
 
+            # Grain cross-section visualization
+            if _grain:
+                st.plotly_chart(plot_grain_cross_section(_grain.ro * 1e3, _grain.ri0 * 1e3), width='stretch')
+
             # Regression data table (downsampled)
             t = res['t'];  n_pts = min(50, len(t))
             idx = np.round(np.linspace(0, len(t)-1, n_pts)).astype(int)
@@ -1691,6 +2083,16 @@ def main() -> None:
 """, unsafe_allow_html=True)
         with c2:
             st.dataframe(df_sr, use_container_width=True, hide_index=True)
+
+        # Temperature sensitivity chart
+        st.plotly_chart(plot_temp_sensitivity(prop), width='stretch')
+        _tc = st.session_state.get('sim_temp_C', 20.0)
+        if _tc != 20.0 and res:
+            _r_ref = prop.burn_a * (res['max_Pc_MPa'] ** prop.burn_n)
+            _r_T = burn_rate_at_temp(prop.burn_a, prop.burn_n, res['max_Pc_MPa'] * MPA, _tc) * 1e3
+            _delta = (_r_T / _r_ref - 1.0) * 100
+            st.markdown(f'<div class="{"warn-box" if abs(_delta) > 5 else "ok-box"}">🌡 At {_tc:.0f}°C, burn rate at peak Pc = <b>{_r_T:.3f} mm/s</b> ({_delta:+.1f}% vs 20°C nominal)</div>',
+                        unsafe_allow_html=True)
 
     # ── TAB 4 — STRUCTURAL MARGIN ────────────────────────────────────────
     with tab_struct:
@@ -1808,11 +2210,100 @@ def main() -> None:
                 )
                 st.code(json_text[:1200] + '\n  // … [truncated] …', language='json')
 
-    # ── TAB 6 — KNOWLEDGE BASE ───────────────────────────────────────────
+    # ── TAB 6 — FLIGHT TRAJECTORY ────────────────────────────────────────
+    with tab_flight:
+        _fr = st.session_state.get('flight_res')
+        if _fr is None:
+            st.markdown("""
+<div class="nexus-card" style="text-align:center; padding:3rem;">
+  <div style="font-family:Orbitron,monospace; font-size:1rem; color:#2a4a6a; letter-spacing:0.1em;">
+    AWAITING LAUNCH PARAMETERS
+  </div>
+  <div style="font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:#1a3050; margin-top:0.75rem;">
+    Configure Section 7 (Flight & Mission) in sidebar → Execute Simulation
+  </div>
+</div>
+""", unsafe_allow_html=True)
+        else:
+            # Key flight metrics
+            fa, fb, fc, fd = st.columns(4)
+            fa.metric('Max Altitude', f'{_fr["max_altitude_m"]:.0f} m  ({_fr["max_altitude_m"]/0.3048:.0f} ft)')
+            fb.metric('Max Velocity', f'{_fr["max_velocity_ms"]:.1f} m/s  (Mach {_fr["max_velocity_ms"]/340:.2f})')
+            fc.metric('Time to Apogee', f'{_fr["time_to_apogee_s"]:.1f} s')
+            fd.metric('Burnout Altitude', f'{_fr["burnout_altitude_m"]:.0f} m')
+            fe, ff = st.columns(2)
+            fe.metric('Coast Phase', f'{_fr["coast_time_s"]:.1f} s')
+            ff.metric('Total Flight Time', f'{_fr["flight_time_s"]:.1f} s')
+            st.plotly_chart(plot_flight(_fr), width='stretch')
+            st.markdown(f"""
+<div class="nexus-card">
+  <div class="nexus-section">Flight Parameters Used</div>
+  {kv('Liftoff mass', f'{launch_mass_kg:.2f} kg')}
+  {kv('Drag coefficient', f'{drag_cd:.2f}')}
+  {kv('Body diameter', f'{body_diam_mm:.0f} mm')}
+  {kv('Launch angle from vertical', f'{launch_angle_off}°')}
+</div>
+""", unsafe_allow_html=True)
+
+    # ── TAB 7 — SENSITIVITY & OVERLAY ────────────────────────────────────
+    with tab_sens:
+        st.markdown('<div class="nexus-section">Thrust Curve Overlay</div>', unsafe_allow_html=True)
+        render_overlay_controls()
+        _ovl = st.session_state.get('overlay_sims', [])
+        if _ovl:
+            if st.button('➕ Add current simulation to overlay', use_container_width=True):
+                if res:
+                    store_sim_overlay(res, _prop.abbr if _prop else 'Motor',
+                                      f'{_mtr or mtr_name} ({res["motor_class"]})')
+                    st.rerun()
+            st.plotly_chart(plot_overlay(_ovl), width='stretch')
+        else:
+            if res:
+                if st.button('➕ Add current simulation to overlay', use_container_width=True):
+                    store_sim_overlay(res, _prop.abbr if _prop else 'Motor',
+                                      f'{_mtr or mtr_name} ({res["motor_class"]})')
+                    st.rerun()
+
+        st.markdown('<div class="nexus-section">Throat Diameter Sensitivity</div>', unsafe_allow_html=True)
+        if res is None:
+            st.info('Run a simulation first to enable sensitivity analysis.')
+        else:
+            _dt_range = st.slider('Throat Δ range (mm)', min_value=0.5, max_value=5.0, value=2.0, step=0.5)
+            _n_steps = 5
+            _dt_vals = [round(Dt_mm - _dt_range + i * 2 * _dt_range / (_n_steps - 1), 2) for i in range(_n_steps)]
+            _sens_results = []
+            with st.spinner('Running sensitivity sweep…'):
+                for _dv in _dt_vals:
+                    if _dv <= 0:
+                        _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
+                        continue
+                    try:
+                        _at_v = math.pi * (_dv * 1e-3 / 2) ** 2
+                        _ae_v = math.pi * (De_mm * 1e-3 / 2) ** 2
+                        _grain_v = BATESGrain(ro_mm * 1e-3, ri_mm * 1e-3, L_mm * 1e-3, int(n_seg))
+                        _ib_v = InternalBallistics(prop, _grain_v, _at_v, _ae_v, eta_cs, eta_dp)
+                        _res_v = _ib_v.run(dt_s=dt_s)
+                        _sens_results.append(_res_v)
+                    except Exception:
+                        _sens_results.append({'max_Pc_MPa': 0, 'avg_Isp': 0, 'total_impulse': 0, 'burn_time': 0})
+
+            _metric_sel = st.selectbox('Metric', ['max_Pc_MPa', 'avg_Isp', 'total_impulse', 'burn_time'],
+                                       format_func=lambda k: {'max_Pc_MPa': 'Max Pressure (MPa)',
+                                                               'avg_Isp': 'Avg Isp (s)',
+                                                               'total_impulse': 'Total Impulse (N·s)',
+                                                               'burn_time': 'Burn Time (s)'}[k])
+            st.plotly_chart(plot_sensitivity(_sens_results, 'Throat Diameter (mm)', _dt_vals,
+                                            _metric_sel, {'max_Pc_MPa': 'Max Pressure (MPa)',
+                                                          'avg_Isp': 'Avg Isp (s)',
+                                                          'total_impulse': 'Total Impulse (N·s)',
+                                                          'burn_time': 'Burn Time (s)'}[_metric_sel]),
+                            width='stretch')
+
+    # ── TAB 8 — KNOWLEDGE BASE ───────────────────────────────────────────
     with tab_kb:
         render_knowledge_base()
 
-    # ── TAB 7 — AI EXPERT (built-in, no API key needed) ─────────────────
+    # ── TAB 9 — AI EXPERT (built-in, no API key needed) ─────────────────
     with tab_ai:
         render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, ro_mm, ri_mm, L_mm, At_m2, Ae_m2, eta_cs, eta_dp, wall_mm, mat_key)
 
