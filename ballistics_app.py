@@ -56,18 +56,18 @@ G0     = 9.80665      # m/s²  standard gravity
 R_UNIV = 8.31446      # J/(mol·K)
 MPA    = 1_000_000.0  # Pa per MPa
 
-# A+C Hybrid palette — Precision Instrument × Spatial Glass
-_BG  = '#060910'                      # near-black base
-_SRF = '#0c0f18'                      # surface
-_GRD = 'rgba(255,255,255,0.05)'
-_AMB = '#e8b84b'                      # amber  — chamber pressure / Pc
-_BLU = '#60b8e8'                      # steel blue — thrust / force
-_GRN = '#70d87a'                      # clean green — structural / safe
-_VIO = '#c080e0'                      # violet — Kn / grain
-_RED = '#e86060'                      # soft red — warning / danger
-_CYN = '#818cf8'                      # indigo — interactive accent (buttons, active tab)
-_TXT = 'rgba(255,255,255,0.88)'
-_DIM = 'rgba(255,255,255,0.25)'
+# Spatial Glass palette — readability-first dark theme
+_BG  = '#0d1117'                      # GitHub dark — proven readable
+_SRF = '#161b22'                      # card surface
+_GRD = 'rgba(255,255,255,0.08)'
+_AMB = '#d29922'                      # amber — warnings
+_BLU = '#58a6ff'                      # blue — info/thrust
+_GRN = '#3fb950'                      # green — safe/pass
+_VIO = '#bc8cff'                      # violet — Kn/grain
+_RED = '#f85149'                      # red — danger
+_CYN = '#818cf8'                      # indigo — interactive accent
+_TXT = '#e6edf3'                      # primary text — high contrast
+_DIM = 'rgba(230,237,243,0.45)'       # secondary text — still readable
 _PRP = '#a78bfa'
 
 # Pre-computed rgba fill variants
@@ -83,11 +83,11 @@ NEXUS_LAYOUT = dict(
     paper_bgcolor=_BG, plot_bgcolor=_SRF,
     font=dict(color=_TXT, family='Inter, system-ui, sans-serif', size=11),
     margin=dict(l=50, r=20, t=40, b=40),
-    legend=dict(bgcolor='rgba(8,10,20,0.92)', bordercolor='rgba(255,255,255,0.07)', borderwidth=1),
+    legend=dict(bgcolor='rgba(13,17,23,0.95)', bordercolor='rgba(255,255,255,0.1)', borderwidth=1),
 )
 NEXUS_AXIS = dict(
-    gridcolor='rgba(255,255,255,0.04)', zerolinecolor='rgba(255,255,255,0.07)',
-    linecolor='rgba(255,255,255,0.05)', tickcolor=_DIM, title_font_color=_DIM,
+    gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.1)',
+    linecolor='rgba(255,255,255,0.08)', tickcolor=_DIM, title_font_color=_DIM,
 )
 
 
@@ -1160,17 +1160,17 @@ def inject_css() -> None:
 
 <style>
 /* ════════════════════════════════════════════════════
-   NEXUS — Spatial Glass
-   Deep dark base, frosted glass cards, indigo depth
+   NEXUS — Spatial Glass  ·  Readability-First Dark
+   Base: #0d1117 (GitHub dark — proven at scale)
    ════════════════════════════════════════════════════ */
 
 /* ── Base & Background ─────────────────────────────── */
 .stApp {
-  background: #08090c !important;
+  background: #0d1117 !important;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.11) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 85% 20%, rgba(139,92,246,0.06) 0%, transparent 50%) !important;
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(99,102,241,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 25% at 88% 18%, rgba(139,92,246,0.05) 0%, transparent 50%) !important;
 }
 .main .block-container {
   padding-top: 0;
@@ -1179,9 +1179,8 @@ def inject_css() -> None:
 
 /* ── Sidebar ───────────────────────────────────────── */
 [data-testid="stSidebar"] {
-  background: rgba(10,10,15,0.95) !important;
-  border-right: 1px solid rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(20px);
+  background: #0d1117 !important;
+  border-right: 1px solid rgba(255,255,255,0.1) !important;
 }
 [data-testid="stSidebar"] .stMarkdown h3 {
   font-family: 'Inter', sans-serif;
@@ -1189,38 +1188,38 @@ def inject_css() -> None:
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.25);
+  color: rgba(230,237,243,0.4);
   margin-top: 1.6rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ── Tabs ──────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
   background: transparent;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   gap: 0;
   padding: 0;
 }
 .stTabs [data-baseweb="tab"] {
   background: transparent;
-  color: rgba(255,255,255,0.35);
+  color: rgba(230,237,243,0.45);
   font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  padding: 0.65rem 1.1rem;
+  padding: 0.7rem 1.2rem;
   border-radius: 0;
   border: none;
   border-bottom: 2px solid transparent;
-  transition: color 0.2s;
+  transition: color 0.15s;
 }
 .stTabs [data-baseweb="tab"]:hover {
-  color: rgba(255,255,255,0.7);
+  color: rgba(230,237,243,0.8);
   background: rgba(255,255,255,0.03);
 }
 .stTabs [aria-selected="true"] {
   background: transparent !important;
-  color: #fff !important;
+  color: #e6edf3 !important;
   border-bottom: 2px solid #818cf8 !important;
   font-weight: 600;
 }
@@ -1234,34 +1233,34 @@ def inject_css() -> None:
   font-family: 'JetBrains Mono', monospace;
   font-size: 1.7rem !important;
   font-weight: 500;
-  color: #ffffff !important;
+  color: #e6edf3 !important;
   letter-spacing: -0.02em;
 }
 [data-testid="stMetricLabel"] {
   font-family: 'Inter', sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  color: rgba(255,255,255,0.35) !important;
+  color: rgba(230,237,243,0.5) !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 [data-testid="metric-container"] {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(22,27,34,0.8);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
   padding: 1rem 1.2rem;
   transition: border-color 0.2s;
 }
 [data-testid="metric-container"]:hover {
-  border-color: rgba(232,184,75,0.28);
+  border-color: rgba(129,140,248,0.4);
 }
 
 /* ── Expanders ─────────────────────────────────────── */
 .streamlit-expanderHeader {
-  background: rgba(255,255,255,0.03) !important;
-  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(22,27,34,0.7) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
   border-radius: 10px !important;
-  color: rgba(255,255,255,0.8) !important;
+  color: rgba(230,237,243,0.85) !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 0.875rem !important;
   font-weight: 500 !important;
@@ -1269,11 +1268,11 @@ def inject_css() -> None:
   transition: background 0.2s !important;
 }
 .streamlit-expanderHeader:hover {
-  background: rgba(255,255,255,0.05) !important;
+  background: rgba(255,255,255,0.06) !important;
 }
 .streamlit-expanderContent {
-  background: rgba(255,255,255,0.02) !important;
-  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(13,17,23,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
   border-top: none !important;
   border-radius: 0 0 10px 10px !important;
   padding: 1.2rem !important;
@@ -1281,20 +1280,20 @@ def inject_css() -> None:
 
 /* ── Buttons ───────────────────────────────────────── */
 .stButton > button {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(230,237,243,0.75);
   font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
   border-radius: 8px;
   padding: 0.45rem 1rem;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 .stButton > button:hover {
-  background: rgba(255,255,255,0.09);
-  border-color: rgba(255,255,255,0.2);
-  color: #fff;
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.22);
+  color: #e6edf3;
   transform: translateY(-1px);
 }
 .stButton > button[kind="primary"] {
@@ -1305,12 +1304,12 @@ def inject_css() -> None:
   font-size: 0.875rem;
   padding: 0.65rem 2rem;
   border-radius: 8px;
-  box-shadow: 0 0 0 1px rgba(99,102,241,0.4), 0 4px 15px rgba(99,102,241,0.25);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.4), 0 4px 16px rgba(99,102,241,0.3);
   letter-spacing: 0.01em;
 }
 .stButton > button[kind="primary"]:hover {
   background: linear-gradient(135deg, #7c7ff5, #93a0fa);
-  box-shadow: 0 0 0 1px rgba(129,140,248,0.6), 0 4px 25px rgba(99,102,241,0.4);
+  box-shadow: 0 0 0 1px rgba(129,140,248,0.6), 0 4px 24px rgba(99,102,241,0.45);
   transform: translateY(-1px);
 }
 
@@ -1318,9 +1317,9 @@ def inject_css() -> None:
 .stSelectbox > div > div,
 .stNumberInput > div > div > input,
 .stTextInput > div > input {
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.09) !important;
-  color: rgba(255,255,255,0.9) !important;
+  background: rgba(22,27,34,0.8) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: #e6edf3 !important;
   border-radius: 8px !important;
   font-size: 0.875rem !important;
   font-family: 'Inter', sans-serif !important;
@@ -1329,10 +1328,10 @@ def inject_css() -> None:
 .stSelectbox > div > div:focus-within,
 .stNumberInput > div > div:focus-within,
 .stTextInput > div:focus-within {
-  border-color: rgba(129,140,248,0.5) !important;
+  border-color: rgba(129,140,248,0.55) !important;
 }
 .stSelectbox label, .stNumberInput label, .stSlider label, .stTextInput label {
-  color: rgba(255,255,255,0.35) !important;
+  color: rgba(230,237,243,0.5) !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 0.72rem !important;
   font-weight: 500 !important;
@@ -1347,51 +1346,51 @@ def inject_css() -> None:
 
 /* ── Alerts ─────────────────────────────────────────── */
 .stAlert {
-  background: rgba(255,255,255,0.03) !important;
+  background: rgba(22,27,34,0.7) !important;
   border-radius: 8px !important;
   font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  border: 1px solid rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
 }
-[data-testid="stInfo"]    { border-left: 2px solid #6366f1 !important; }
-[data-testid="stWarning"] { border-left: 2px solid #f59e0b !important; }
-[data-testid="stError"]   { border-left: 2px solid #ef4444 !important; }
-[data-testid="stSuccess"] { border-left: 2px solid #22c55e !important; }
+[data-testid="stInfo"]    { border-left: 2px solid #818cf8 !important; }
+[data-testid="stWarning"] { border-left: 2px solid #d29922 !important; }
+[data-testid="stError"]   { border-left: 2px solid #f85149 !important; }
+[data-testid="stSuccess"] { border-left: 2px solid #3fb950 !important; }
 
 /* ── Chat ──────────────────────────────────────────── */
 [data-testid="stChatInput"] > div {
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(22,27,34,0.8) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
   border-radius: 10px !important;
 }
 [data-testid="stChatMessageContent"] {
-  background: rgba(255,255,255,0.03) !important;
-  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(22,27,34,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
   border-radius: 10px !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 0.9rem;
-  color: rgba(255,255,255,0.85) !important;
-  line-height: 1.7;
+  color: #e6edf3 !important;
+  line-height: 1.75;
 }
 
 /* ── Scrollbar ─────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 /* ── Glass cards ───────────────────────────────────── */
 .nexus-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(22,27,34,0.7);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 14px;
   padding: 1.4rem 1.7rem;
   margin-bottom: 1.1rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   transition: border-color 0.2s;
 }
 .nexus-card:hover {
-  border-color: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.18);
 }
 
 /* ── Typography ─────────────────────────────────────── */
@@ -1399,14 +1398,14 @@ def inject_css() -> None:
   font-family: 'Inter', sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #e6edf3;
   letter-spacing: -0.03em;
   margin: 0;
 }
 .nexus-subtitle {
   font-family: 'Inter', sans-serif;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.35);
+  color: rgba(230,237,243,0.45);
   margin-top: 0.2rem;
   font-weight: 400;
 }
@@ -1414,12 +1413,12 @@ def inject_css() -> None:
   font-family: 'Inter', sans-serif;
   font-size: 0.65rem;
   font-weight: 600;
-  color: rgba(255,255,255,0.25);
+  color: rgba(230,237,243,0.38);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding-bottom: 0.5rem;
   margin: 1.6rem 0 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ── Key-value pairs ────────────────────────────────── */
@@ -1428,16 +1427,16 @@ def inject_css() -> None:
   justify-content: space-between;
   align-items: center;
   padding: 0.38rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.kv-key { color: rgba(255,255,255,0.35); font-family: 'Inter', sans-serif; font-size: 0.8rem; }
-.kv-val { color: rgba(255,255,255,0.9); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 500; }
+.kv-key { color: rgba(230,237,243,0.5); font-family: 'Inter', sans-serif; font-size: 0.8rem; }
+.kv-val { color: #e6edf3; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 500; }
 .kv-val.cyan   { color: #818cf8; }
-.kv-val.orange { color: #e8b84b; }
-.kv-val.green  { color: #70d87a; }
-.kv-val.red    { color: #e86060; }
-.kv-val.blue   { color: #60b8e8; }
-.kv-val.violet { color: #c080e0; }
+.kv-val.orange { color: #d29922; }
+.kv-val.green  { color: #3fb950; }
+.kv-val.red    { color: #f85149; }
+.kv-val.blue   { color: #58a6ff; }
+.kv-val.violet { color: #bc8cff; }
 
 /* ── Semantic metric card borders (A+C hybrid) ─────── */
 .metric-pressure [data-testid="metric-container"] { border-color: rgba(232,184,75,0.22) !important; }
@@ -1535,69 +1534,90 @@ def inject_css() -> None:
   color: #a5b4fc;
 }
 
-/* ── Status boxes ───────────────────────────────────── */
+/* ── Status / alert boxes ───────────────────────────── */
 .warn-box {
-  background: rgba(251,146,60,0.07);
-  border: 1px solid rgba(251,146,60,0.2);
-  border-left: 2px solid #fb923c;
+  background: rgba(210,153,34,0.08);
+  border: 1px solid rgba(210,153,34,0.25);
+  border-left: 3px solid #d29922;
   border-radius: 8px;
   padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
   font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
-  color: #fdba74;
-  line-height: 1.55;
+  color: #e3b341;
+  line-height: 1.6;
 }
 .danger-box {
-  background: rgba(239,68,68,0.07);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-left: 2px solid #ef4444;
+  background: rgba(248,81,73,0.08);
+  border: 1px solid rgba(248,81,73,0.25);
+  border-left: 3px solid #f85149;
   border-radius: 8px;
   padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
   font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
-  color: #fca5a5;
-  line-height: 1.55;
+  color: #ff7b72;
+  line-height: 1.6;
 }
 .ok-box {
-  background: rgba(34,197,94,0.06);
-  border: 1px solid rgba(34,197,94,0.18);
-  border-left: 2px solid #22c55e;
+  background: rgba(63,185,80,0.07);
+  border: 1px solid rgba(63,185,80,0.22);
+  border-left: 3px solid #3fb950;
   border-radius: 8px;
   padding: 0.85rem 1.1rem;
   margin: 0.8rem 0;
   font-family: 'Inter', sans-serif;
   font-size: 0.85rem;
-  color: #86efac;
-  line-height: 1.55;
+  color: #56d364;
+  line-height: 1.6;
 }
 
 /* ── Markdown text ──────────────────────────────────── */
 .stMarkdown p, .stMarkdown li {
-  color: rgba(255,255,255,0.65) !important;
+  color: rgba(230,237,243,0.75) !important;
   font-size: 0.9rem;
-  line-height: 1.7;
+  line-height: 1.75;
 }
-.stMarkdown strong { color: rgba(255,255,255,0.9) !important; }
+.stMarkdown strong { color: #e6edf3 !important; }
 .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-  color: rgba(255,255,255,0.9) !important;
+  color: #e6edf3 !important;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 .stMarkdown code {
-  background: rgba(129,140,248,0.12) !important;
+  background: rgba(129,140,248,0.15) !important;
   color: #a5b4fc !important;
   border-radius: 4px;
-  padding: 0.1em 0.4em;
+  padding: 0.1em 0.45em;
   font-size: 0.85em;
+}
+.stMarkdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.stMarkdown th {
+  background: rgba(22,27,34,0.8) !important;
+  color: rgba(230,237,243,0.55) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  padding: 0.5rem 0.75rem !important;
+  border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+}
+.stMarkdown td {
+  color: rgba(230,237,243,0.8) !important;
+  font-size: 0.85rem !important;
+  padding: 0.45rem 0.75rem !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* ── Dataframes / tables ────────────────────────────── */
 .stDataFrame { border-radius: 10px; overflow: hidden; }
 [data-testid="stTable"] th {
-  background: rgba(255,255,255,0.04) !important;
-  color: rgba(255,255,255,0.4) !important;
+  background: rgba(22,27,34,0.8) !important;
+  color: rgba(230,237,243,0.5) !important;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.07em;
@@ -1606,9 +1626,23 @@ def inject_css() -> None:
 
 /* ── Caption text ───────────────────────────────────── */
 .stCaption, [data-testid="stCaptionContainer"] p {
-  color: rgba(255,255,255,0.3) !important;
+  color: rgba(230,237,243,0.38) !important;
   font-size: 0.78rem !important;
 }
+
+/* ── Nexus topbar ───────────────────────────────────── */
+.nexus-topbar {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.55rem 0;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: rgba(230,237,243,0.28);
+  letter-spacing: 0.07em;
+}
+.nexus-topbar span { color: rgba(230,237,243,0.5); }
+.nexus-topbar .sep { color: rgba(230,237,243,0.2); margin: 0 0.15rem; }
 
 @media (max-width: 768px) {
   [data-testid="stSidebar"] { width: auto !important; min-width: unset !important; max-width: unset !important; }
@@ -2141,12 +2175,12 @@ def main() -> None:
 
             def _mc(label, value, val_col, border, sub, sub_col, bar_col, bar_pct):
                 return f"""
-<div style="background:rgba(255,255,255,0.03);border:1px solid {border};border-radius:12px;padding:0.9rem 1rem 0.75rem;backdrop-filter:blur(12px);transition:border-color 0.2s,background 0.2s;">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:0.63rem;color:rgba(255,255,255,0.2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.4rem;">{label}</div>
+<div style="background:rgba(22,27,34,0.8);border:1px solid {border};border-radius:12px;padding:0.9rem 1rem 0.75rem;backdrop-filter:blur(12px);transition:border-color 0.2s,background 0.2s;">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.63rem;color:rgba(230,237,243,0.42);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.4rem;">{label}</div>
   <div style="font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;color:{val_col};letter-spacing:-0.02em;line-height:1;">{value}</div>
   <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:{sub_col};margin-top:0.28rem;letter-spacing:0.06em;">{sub}</div>
-  <div style="height:2px;background:rgba(255,255,255,0.05);border-radius:1px;margin-top:0.6rem;overflow:hidden;">
-    <div style="height:100%;width:{bar_pct:.0f}%;background:{bar_col};border-radius:1px;opacity:0.7;"></div>
+  <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:1px;margin-top:0.6rem;overflow:hidden;">
+    <div style="height:100%;width:{bar_pct:.0f}%;background:{bar_col};border-radius:1px;opacity:0.75;"></div>
   </div>
 </div>"""
 
@@ -4003,6 +4037,331 @@ Black powder ejection charges: Start with 0.6 g/L of air volume in the recovery 
 - For APCP: liner is mandatory (Tf ≈ 3350K vs Al melting point of 660°C)
 
 **Common failure mode:** Liner delamination during burn → hot gas bypass → rapid casing heating → structural failure. Always inspect liner before loading."""
+    },
+    {
+        "tags": ["AP loading","ammonium perchlorate","bimodal distribution","packing efficiency","oxidizer loading","HLG formulation","Isp optimization","particle size distribution"],
+        "title": "HLG AP Loading Optimization",
+        "answer": """Pushing AP loading from a standard 65% to 82%+ requires solving a geometric packing problem. A monodisperse particle bed tops out near 64% packing by volume (random close packing). To exceed this, you must use a **bimodal or trimodal particle size distribution** where fine particles occupy the interstitial voids between coarse particles.
+
+**Bimodal distribution approach:**
+- **Coarse AP**: 200–250 µm median diameter, typically 55–60% of total AP mass
+- **Fine AP**: 15–30 µm median diameter, typically 40–45% of total AP mass
+- The coarse-to-fine ratio is typically 70:30 to 60:40 by AP weight
+- Fine AP fills the voids between coarse particles, allowing packing fractions above 80%
+
+**Density implications:**
+At 65% AP, bimodal APCP runs ~1.65 g/cc. At 80% AP with optimized bimodal distribution, density reaches **1.78–1.82 g/cc**. Higher density means more propellant mass in a fixed motor volume — directly increasing total impulse.
+
+**Isp gains per percent AP:**
+- From 65% to 70% AP: approximately +3 to +4 s vacuum Isp (assuming 15–18% Al, balance HTPB)
+- From 70% to 75% AP: approximately +2 to +3 s additional
+- Gains diminish above 78% as binder content drops below the mechanical property floor (~12% binder minimum for adequate elongation)
+- Practical ceiling with HTPB binder: ~82–84% AP before the grain becomes too brittle or unmixable
+
+**Volumetric Isp advantage:**
+A formulation at 80% AP and 1.80 g/cc with Isp = 265 s yields volumetric Isp ≈ 477 s·g/cc versus standard 65% AP at 1.65 g/cc and Isp = 235 s yielding ≈ 388 s·g/cc — a 23% volumetric advantage. This is the core HLG engineering driver.
+
+**Practical mixing constraints:**
+Above 78–80% total solids (AP + Al), viscosity rises sharply. Pot life drops, and incomplete wetting of AP particles becomes a risk. Fine AP below 10 µm is hygroscopic and hazardous to grind. Commercial HLG propellants use AP ground to 2–10 µm for the fine fraction, sourced from controlled crystallization rather than mechanical milling.
+
+**Ref:** Sutton & Biblarz, *Rocket Propulsion Elements*, Chapter 12."""
+    },
+    {
+        "tags": ["burn rate catalyst","iron oxide","copper chromite","Fe2O3","MnO2","carbon black","Saint-Robert law","burn rate modifier","a-coefficient","n-value"],
+        "title": "Burn Rate Catalysts and Modifiers",
+        "answer": """Burn rate in APCP follows the **Saint-Robert law**: r = a · Pc^n, where r is burn rate (mm/s), Pc is chamber pressure (MPa), a is the pre-exponential coefficient, and n is the pressure exponent. Catalysts primarily affect the **a-coefficient** (rate at reference pressure) and secondarily shift the n-value.
+
+**Fe₂O₃ (iron oxide):**
+- Most common APCP burn rate accelerator
+- Typical loading: 0.3–2.0% by total propellant weight
+- Catalyzes AP decomposition at the burning surface, lowering activation energy
+- Increases 'a' by 15–40% at 1% loading depending on AP particle size and baseline formulation
+- n-value effect: modest increase, typically +0.02 to +0.05
+- Nano-iron oxide (< 1 µm) is significantly more potent — 0.1% nano-Fe₂O₃ can match the effect of 0.5–1.0% standard Fe₂O₃
+
+**Copper chromite (CuO·CuCr₂O₄):**
+- Potent accelerator with stronger effect than Fe₂O₃ at equivalent loading; typical loading 0.2–1.0%
+- Particularly effective in plateau formulations — can suppress n-value over specific pressure ranges, producing near-zero n ("plateau burning") over 4–8 MPa
+- Raises burn rate 30–60% at 0.5% loading in standard HTPB/AP formulations
+- Chromium content requires handling precautions
+
+**MnO₂ (manganese dioxide):**
+- Moderate accelerator; typical loading 0.5–1.5%
+- a-coefficient increase: 10–25% at 1% loading
+- Sometimes used in combination with Fe₂O₃ for synergistic effect
+
+**Carbon black:**
+- Functions as a mild **burn rate suppressant** at low levels (0.05–0.2%) by absorbing radiant heat feedback to the surface
+- Also reduces electrostatic sensitivity of the mixed propellant
+- High loadings (> 0.5%) reduce Isp by displacing active ingredients
+- n-value: generally reduces n slightly by buffering pressure sensitivity
+
+Catalyst optimization requires Crawford bomb data — published values are formulation-specific. A 0.5% catalyst loading change can shift 'a' by 15–20%. Always characterize your specific batch.
+
+**Ref:** Kubota, *Propellants and Explosives*, Chapter 4."""
+    },
+    {
+        "tags": ["HTPB","binder chemistry","R-45","IPDI","MDI","NCO:OH ratio","pot life","cure schedule","DOA plasticizer","polyurethane cure"],
+        "title": "HTPB Binder Chemistry",
+        "answer": """**HTPB (Hydroxyl-Terminated Polybutadiene)** is the dominant binder in modern composite propellants. Standard grade is **R-45M**, a liquid prepolymer with hydroxyl functionality ~2.2–2.5, hydroxyl equivalent weight ~1300–1400 g/mol, and viscosity ~2500–5000 cP at 25°C.
+
+**Curatives — IPDI vs MDI:**
+HTPB is cured via urethane chemistry by reacting hydroxyl (–OH) end groups with isocyanate (–NCO) curatives.
+
+- **IPDI (isophorone diisocyanate)**: Preferred for propellants. Aliphatic isocyanate — longer pot life (4–8 h at 25°C), excellent thermal stability, better mechanical property retention on aging. Standard in most US military and HPR formulations.
+- **MDI (methylene diphenyl diisocyanate)**: Aromatic, faster cure, pot life 2–4 h, higher green strength. Can embrittle with UV/thermal aging. Not preferred for long-storage grains.
+
+**NCO:OH ratio — the most critical variable:**
+- **0.85–0.90**: Standard target. Slightly sub-stoichiometric (excess OH) for adequate elongation.
+- Below 0.80: Under-cured — soft, tacky, low tensile strength, creep under load.
+- Above 0.95: Over-cured — increased crosslink density, higher Shore A, reduced elongation, brittleness at –40°C.
+- The 0.85–0.90 window gives Shore A hardness 35–55, elongation 40–80%, and adequate creep resistance.
+
+**Pot life and processing:**
+At 25°C with IPDI and DBTDL catalyst (0.01–0.05%), pot life is 4–8 hours before viscosity doubles. Every 10°C rise roughly halves pot life. All ingredients must be dried below 200 ppm moisture — water reacts with NCO and forms CO₂ bubbles (voids in the grain).
+
+**Cure schedule:**
+Standard: **60°C for 72–168 hours**. Lower temperatures require longer times. Cure completion monitored by Shore A stabilization or NCO disappearance via FTIR.
+
+**Plasticizers — DOA vs DOS:**
+- **DOA (dioctyl adipate)**: Most common. Good low-temperature flexibility (Tg ~ –70°C).
+- **DOS (dioctyl sebacate)**: Higher boiling point, lower vapor pressure, preferred for high-temperature storage.
+- Typical loading: 5–15% of binder phase weight.
+
+**Ref:** Kuo & Summerfield, *Fundamentals of Solid-Propellant Combustion*, Chapter 1."""
+    },
+    {
+        "tags": ["aluminum fuel","Al particle size","bimodal aluminum","agglomeration","slag formation","two-phase flow","Isp aluminum","fine aluminum"],
+        "title": "Aluminum Particle Size and Loading",
+        "answer": """Aluminum is the energetic fuel additive in virtually all high-performance APCP. It reacts with AP decomposition products to produce Al₂O₃ and releases substantial heat, raising flame temperature and Isp.
+
+**Particle size ranges:**
+- **Fine Al**: 5–20 µm (atomized or flake)
+- **Coarse Al**: 40–90 µm (commercial grade, cost-effective)
+- **Nano-Al**: 80–200 nm — research-grade, extreme reactivity, handling hazard
+
+**Fine vs coarse tradeoffs:**
+Fine Al (< 20 µm) ignites more readily and produces smaller agglomerates (50–200 µm) that burn out faster in the chamber, reducing two-phase flow losses. Coarse Al (40–90 µm) is cheaper but produces larger agglomerates (200–800 µm) that may not fully combust before exiting the nozzle.
+
+**Typical loading and Isp gain:**
+- Standard HPR propellant: 12–18% Al by total weight
+- Below 10%: Al contribution marginal relative to the volume displaced from AP
+- Above 20%: diminishing returns; slag formation increases, AP fraction must decrease
+- **Isp gain**: approximately +4 to +6 s vacuum Isp per 5% increase in Al loading (10% → 15% Al in HTPB/AP base)
+- Theoretical: 15% Al / 68% AP / 17% HTPB at Pc = 7 MPa, expansion 10:1 → ~265 s vacuum Isp
+
+**Agglomeration and slag:**
+Agglomeration (coalescence of Al particles into molten droplets at the burning surface) increases with coarser initial particle size, higher AP loading, and lower burn rate. Slag (Al₂O₃ accumulated in combustion chamber or nozzle) reduces Isp by 3–8 s from theoretical and can cause nozzle erosion.
+
+**Native oxide layer:**
+All Al carries a 2–4 nm Al₂O₃ shell. This shell is proportionally larger for fine particles — a 5 µm particle is ~10% Al₂O₃ by mass; a 50 µm particle is ~1%. This partially offsets the combustion efficiency advantage of fine Al.
+
+**Ref:** Sutton & Biblarz, Chapter 13."""
+    },
+    {
+        "tags": ["HLG propellant","high loading grain","APCP comparison","military propellant","AIM-9","AIM-120","Isp comparison","AP percentage","volumetric Isp"],
+        "title": "HLG vs Standard APCP — Engineering Comparison",
+        "answer": """**HLG (High-Loading Grain)** is a military and defense composite propellant classification, not an amateur rocketry category. It refers to formulations engineered to maximize volumetric energy density by pushing AP loading to 78–85% of total propellant weight.
+
+**HLG characteristics:**
+- **AP loading**: 78–85% by weight
+- **AP particle size**: Ultra-fine primary oxidizer, typically 2–10 µm fine fraction combined with 150–250 µm coarse (optimized bimodal)
+- **Binder systems**: HTPB with tailored crosslink density, PBAN (Shuttle SRB), or CTPB (older systems). Binder content typically 10–14%.
+- **Isp (vacuum)**: **255–275 s**
+- **Density**: **1.76–1.85 g/cc**
+- **Applications**: AIM-9X Sidewinder, AIM-120 AMRAAM sustainer, NGSRI (Next Generation Squad Rocket), Mk66 rocket motor, hypersonic interceptor stages
+
+**Standard HPR APCP characteristics:**
+- **AP loading**: 65–72%
+- **Binder**: HTPB R-45, 15–20% binder phase
+- **Isp (vacuum)**: **210–240 s**
+- **Density**: **1.60–1.72 g/cc**
+
+**Comparison table:**
+
+| Parameter | HLG Military | Standard HPR APCP |
+|---|---|---|
+| AP loading | 78–85% | 65–72% |
+| Al loading | 12–18% | 12–18% |
+| Binder | 10–14% | 15–22% |
+| Vacuum Isp | 255–275 s | 210–240 s |
+| Density | 1.76–1.85 g/cc | 1.60–1.72 g/cc |
+| Volumetric Isp | 450–510 s·g/cc | 340–410 s·g/cc |
+
+**Why the Isp gap exists:**
+HLG propellants run at higher chamber pressures (10–20 MPa vs 5–10 MPa for HPR), with higher expansion ratios in tactical motor nozzles. Ultra-fine AP improves combustion completeness. The combination of better oxidizer availability, higher Pc, and optimized Al combustion drives the advantage.
+
+**What HLG is not:**
+HLG is not a commercially available amateur propellant. The solids loading, ultra-fine AP handling, specialized binder chemistry, and processing requirements are outside the scope of amateur or research APCP per BATF/DOT regulations.
+
+**Ref:** Sutton & Biblarz, Chapter 12; Corvid Technologies (2021) 3D-printed functionally graded HLG grain; Navy SBIR N261-057 (2026)."""
+    },
+    {
+        "tags": ["propellant formulation","formulation workflow","Kn calculation","propellant design","burn rate measurement","thermochemical","Crawford bomb","development process"],
+        "title": "Propellant Formulation Workflow — 6 Steps",
+        "answer": """Developing a castable composite propellant from a performance specification is a systematic iterative process. This is actual development practice.
+
+**Step 1 — Set performance target and baseline formulation:**
+Define Isp (vacuum), Pc, and burn rate r at Pc. Use a thermochemical code (NASA CEA, PROPEP, GUIPEP) to back-calculate the AP:Al:Binder ratio. Typical starting point for 230–250 s vacuum Isp at Pc = 7 MPa: AP 68–72% / Al 14–17% / HTPB 14–18%. CEA output is theoretical; subtract 3–5% for combustion efficiency and two-phase losses.
+
+**Step 2 — Adjust burn rate with catalyst loading:**
+If baseline burns too slow for your Kn/Pc target, add Fe₂O₃ at 0.5–1.5% or copper chromite at 0.2–0.8%. Estimate 'a' and 'n' from literature values for similar formulations, then refine with Crawford bomb. If burn rate must decrease, increase binder content or coarsen AP particle size.
+
+**Step 3 — Calculate Kn for target Pc:**
+Pc = (a · ρ · Kn · C*)^(1/(1–n)). For target Pc = 7 MPa with n = 0.35, a = 4.5 mm/s/MPa^n, ρ = 1.72 g/cc, C* = 1580 m/s: solve for required Kn ≈ 210–240. Design grain geometry accordingly.
+
+**Step 4 — Mechanical property check:**
+At NCO:OH = 0.85–0.90 with HX-752 bonding agent. Required minimums: elongation at –40°C ≥ 30%, tensile strength ≥ 0.4 MPa, Shore A 35–60. If solids loading > 86%, these requirements cannot typically be met with HTPB. Add plasticizer or reduce Al loading.
+
+**Step 5 — Hazard assessment:**
+Calculate oxygen balance (OB%). Verify friction, impact, and ESD sensitivity below threshold. Standard APCP < 82% AP is Class 1.3C. Above ~84% AP or with energetic catalysts, sensitivity profiles change. Document MSDSs for all ingredients.
+
+**Step 6 — Trial mix and Crawford bomb characterization:**
+Mix 200–500 g trial batch. Cure at 60°C for 72–168 h. Cut 6 mm × 6 mm × 100 mm strands. Burn at 2, 4, 7, 10, 14 MPa in Crawford bomb. Plot log(r) vs log(Pc) — slope is n, intercept gives a. Compare to target. Iterate catalyst loading."""
+    },
+    {
+        "tags": ["bonding agent","HX-752","MAPO","lecithin","AP adhesion","HTPB adhesion","aziridine","mechanical properties","propellant aging","debonding"],
+        "title": "Bonding Agents — HX-752, MAPO, Lecithin",
+        "answer": """The fundamental problem in composite propellant mechanics is the **interface between AP particles and HTPB binder**. AP is highly polar and hydrophilic; HTPB is nonpolar and hydrophobic. Without a compatibilizer, the binder wets but does not chemically bond to AP surface. Under stress (especially at low temperature), the grain fails at the AP/binder interface — dewetting creates internal voids that can cause catastrophic Kn spikes on ignition.
+
+**HX-752 (aziridine-based bonding agent):**
+- The current standard for HTPB/AP systems in US military and commercial propellants
+- Loading: **0.1–0.2% by total propellant weight**
+- Aziridine groups react with surface groups on AP while the backbone anchors into the urethane network
+- Increases elongation to failure by 30–80% compared to unbonded formulations
+- Reduces dewetting onset temperature from approximately –10°C to below –40°C
+- Aziridines are toxic and potential carcinogens — strict handling required
+
+**MAPO (tri-2-methylaziridinyl phosphine oxide):**
+- Older alternative to HX-752, used extensively in 1960s–1980s military propellants
+- Loading: 0.1–0.3%; similar mechanism to HX-752
+- Less thermally stable, more prone to hydrolysis during storage
+- Largely superseded by HX-752 but still appears in legacy motor specifications
+
+**Lecithin:**
+- Natural phospholipid (soy or egg derived), used in **sugar-based propellants** and some older composite formulations
+- Loading: 0.1–0.5%
+- Functions primarily as a wetting and dispersing agent, not a true chemical bonding agent
+- Not appropriate for HTPB systems requiring cryogenic temperature performance
+- Safe to handle; suitable for amateur and research applications
+
+**Effect on aging:**
+HX-752 bonds can hydrolyze over time if moisture ingresses into the grain. Long-term aging (5–10 years) shows gradual reduction in low-temperature elongation. This is a primary driver of motor service life limits.
+
+**Ref:** Kuo & Summerfield, Chapter 2."""
+    },
+    {
+        "tags": ["Crawford bomb","burn rate measurement","strand burner","Saint-Robert","a coefficient","n coefficient","burn rate test","propellant characterization"],
+        "title": "Crawford Bomb — Burn Rate Measurement",
+        "answer": """The **Crawford bomb** (strand burner) is the standard laboratory instrument for measuring composite propellant burn rate vs pressure. It is the only reliable way to determine Saint-Robert coefficients 'a' and 'n' for a specific formulation.
+
+**Instrument:**
+A rated-pressure vessel (typically 316 SS, rated 30–70 MPa) pressurized with inert N₂ to a set level before ignition. A Nichrome wire ignites the bottom face of a propellant strand. Optical sensors (or photodetectors) at each end record burn transit time.
+
+**Strand dimensions:**
+Standard: **6 mm × 6 mm cross-section × 100 mm length**. All four sides inhibited with epoxy — only the two flat ends exposed. Burn propagates end-to-end as a planar regression.
+
+**Test procedure:**
+1. Set N₂ pressure to target (stabilize ±0.05 MPa)
+2. Fire igniter; record time for burn to traverse 100 mm
+3. Burn rate r = 100 mm ÷ burn time
+4. Test at minimum 5 pressure levels: 2, 4, 7, 10, 14 MPa
+5. Three or more replicate strands per pressure level
+
+**Data reduction:**
+Plot log(r) vs log(Pc). Linear regression: slope = **n**, intercept = log(**a**). Typical HPR APCP: n = 0.30–0.45, a = 3–8 mm/s at 1 MPa.
+
+**Sources of error:**
+- Strand cracking (internal voids) — discard and rerun
+- Surface ignition failure — non-planar burn front
+- Pressure instability (> 1% variation during burn)
+- Inhibitor failure — side burning gives anomalously fast apparent rate
+- Moisture in strand — sputtering and non-planar progression
+- Temperature variation — run all strands at 25°C ± 2°C or characterize temperature sensitivity separately
+
+**Why published values are insufficient:**
+Changing AP particle size, catalyst loading, Al content, or binder ratio changes 'a' and 'n' measurably. A 0.5% Fe₂O₃ change can shift 'a' by 15–20%. Always characterize your specific batch.
+
+**Ref:** CPIA/M2 Units 1 and 3."""
+    },
+    {
+        "tags": ["reverse engineering propellant","propellant back-calculation","Isp target","burn rate target","formulation from performance","AP percentage calculation","thermochemical iteration"],
+        "title": "Propellant Performance to Formulation — Reverse Approach",
+        "answer": """Given a performance target, back-calculating a propellant formulation requires iterating between thermochemical calculations and empirical burn rate data. This is the core skill in propellant engineering.
+
+**Example target:**
+- Vacuum Isp = 230 s
+- Burn rate r = 8 mm/s at Pc = 7 MPa
+- Max Pc = 10 MPa
+- Shore A ≤ 60, elongation ≥ 30% at –40°C
+
+**Step 1 — Thermochemical baseline:**
+Run NASA CEA across a grid at Pc = 7 MPa, expansion ratio 10:1. Sample results (HTPB/AP/Al, delivered Isp after η = 0.95):
+
+| AP% | Al% | HTPB% | Delivered Isp |
+|---|---|---|---|
+| 65 | 12 | 23 | 228 s |
+| 68 | 15 | 17 | 245 s |
+| 70 | 10 | 20 | 233 s |
+
+For 230 s target: **65–68% AP, 10–14% Al, 18–22% HTPB** (lower Al reduces two-phase losses).
+
+**Step 2 — Burn rate back-calculation:**
+Target r = 8 mm/s at 7 MPa. Literature for 66% AP / 14% Al / HTPB (no catalyst): a₀ ≈ 3.5, n₀ = 0.35 → r = 3.5 × 7^0.35 ≈ 7.6 mm/s. Close to target; add 0.3–0.5% Fe₂O₃ to push 'a' to ~4.2 if needed.
+
+**Step 3 — Pressure exponent constraint:**
+With n = 0.35, if Kn rises 20% during burn, Pc rises by factor (1.20)^(1/(1–0.35)) ≈ 1.32. Nominal 7 MPa → max ~9.2 MPa — within the 10 MPa limit.
+
+**Step 4 — Mechanical property check:**
+At 66% AP + 14% Al = 80% solids, binder = 20% — acceptable for HTPB at NCO:OH = 0.87. Predicted elongation at –40°C with HX-752: ~40–60%. If Al pushed to 18%, solids = 84%, binder = 16% — elongation drops to 20–30%, likely failing the cold temperature criterion.
+
+**Final starting formulation estimate:**
+- AP: 66% (bimodal 200 µm / 30 µm at 65:35)
+- Al: 14% (15 µm atomized)
+- HTPB R-45: 17%
+- IPDI curative: 2.0% (NCO:OH = 0.87)
+- DOA plasticizer: 0.5%
+- Fe₂O₃: 0.3%
+- HX-752 bonding agent: 0.1%
+- Carbon black (ESD control): 0.1%
+
+This is a starting mix card. Crawford bomb data will drive iteration to the final formulation."""
+    },
+    {
+        "tags": ["mechanical properties","elongation","Shore A hardness","strain propellant","NCO:OH mechanical","propellant debonding","low temperature","aging propellant","Al stiffness","liner","grain"],
+        "title": "Mechanical Properties — Strain, Elongation, Shore A",
+        "answer": """A solid rocket propellant grain is a structural element, not just a chemical energy source. It must survive –40°C to +70°C thermal cycling, transportation vibration, and ignition pressure transient — without cracking, debonding, or developing voids.
+
+**Why propellant must be elastic:**
+Propellant CTE ≈ 100–150 ppm/°C; steel case CTE ≈ 12 ppm/°C; aluminum case ≈ 23 ppm/°C. A 60°C temperature drop in a 200 mm diameter grain generates ~0.5–1.5% strain at the grain-liner interface. A brittle propellant (< 10% elongation) will crack. A crack provides a new burning surface — if ignited, the extra area causes a Kn spike and potential case failure.
+
+**Key parameters:**
+
+**Elongation to failure (εf):**
+- Minimum: ≥ 30% at –40°C for tactical motors; HPR motors may accept ≥ 15% at –20°C
+- Well-formulated HTPB propellant: 40–80% at 25°C, dropping to 20–50% at –40°C
+
+**Shore A hardness:**
+- Target range: **30–60 Shore A**
+- Below 30: too soft, grain sags in horizontal storage
+- Above 60: too stiff, insufficient elongation, debonding risk at low temperature
+
+**NCO:OH → hardness relationship:**
+- 0.75: Shore A 25–35 (soft, high elongation)
+- 0.85–0.90: Shore A 35–55 (target range)
+- 0.95: Shore A 55–70 (stiff, reduced elongation)
+- 1.00: Shore A 65–80 (over-cured, brittle at cold temperature)
+
+**Effect of Al loading on stiffness:**
+Al particles act as rigid fillers. Adding 5% more Al (e.g., 13% → 18%) typically increases Young's modulus 20–40% and reduces elongation to failure 15–30%. This is why HLG formulations with 80%+ total solids are at the mechanical property boundary.
+
+**Aging degradation:**
+Over years, the HTPB network post-cures, moisture hydrolyzes urethane bonds, and plasticizer migrates. Net effect: Shore A increases, elongation decreases, low-temperature properties degrade fastest. Military motor lots are mechanically tested at periodic intervals (typically 5-year cycles). When elongation at –40°C drops below 20%, the motor is removed from service.
+
+**Propellant debonding from casing:**
+The grain bonds to the casing through a thin HTPB-based **liner**. If propellant modulus becomes too high relative to the liner, the interface fails in shear during thermal contraction. Debonding allows gas to penetrate under the grain during ignition — pressurizing the casing behind the grain and causing case failure. This is why mechanical properties are non-negotiable, not just performance optimization targets.
+
+**Ref:** Sutton & Biblarz, Chapter 11; CPIA/M2."""
     },
 ]
 
