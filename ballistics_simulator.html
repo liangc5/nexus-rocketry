@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Internal Ballistics Simulator — Solid Propellant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ─── Reset & base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --border:    #30363d;
+  --border2:   #21262d;
+  --text:      #c9d1d9;
+  --muted:     #8b949e;
+  --blue:      #58a6ff;
+  --green:     #3fb950;
+  --amber:     #e3b341;
+  --red:       #f85149;
+  --purple:    #ce93d8;
+  --teal:      #80cbc4;
+  --orange:    #f0883e;
+  --input-bg:  #0d1117;
+  --radius:    6px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+header .logo {
+  font-size: 20px;
+  filter: drop-shadow(0 0 4px #e3b34166);
+}
+header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .3px;
+}
+header .sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+header .spacer { flex: 1; }
+.nav-btn {
+  text-decoration: none;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: color .15s, border-color .15s;
+}
+.nav-btn:hover { color: var(--blue); border-color: var(--blue); }
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.workspace {
+  display: grid;
+  grid-template-columns: 260px 1fr 310px;
+  height: calc(100vh - 54px);
+  overflow: hidden;
+}
+.panel {
+  overflow-y: auto;
+  padding: 14px;
+  border-right: 1px solid var(--border);
+}
+.panel:last-child { border-right: none; }
+.center-panel { border-right: 1px solid var(--border); overflow-y: auto; padding: 14px; }
+
+/* ─── Cards / sections ───────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border2);
+}
+
+/* ─── Form controls ─────────────────────────────────────── */
+label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+  margin-top: 8px;
+}
+label:first-child { margin-top: 0; }
+
+input[type=number], select {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color .15s;
+}
+input[type=number]:focus, select:focus { border-color: var(--blue); }
+
+.prop-radio { display: none; }
+.prop-card {
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.prop-card:hover { border-color: var(--blue); }
+.prop-radio:checked + .prop-card {
+  border-color: var(--blue);
+  background: #1c2333;
+}
+.prop-card .pname { font-size: 12px; font-weight: 600; color: var(--text); }
+.prop-card .pmeta { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+/* ─── Run button ─────────────────────────────────────────── */
+.run-btn {
+  width: 100%;
+  padding: 9px 16px;
+  background: #1f6feb;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  margin-top: 4px;
+}
+.run-btn:hover { background: #388bfd; }
+.run-btn:active { background: #1158c7; }
+
+/* ─── Chart area ─────────────────────────────────────────── */
+.chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.chart-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chart-container { position: relative; height: 160px; }
+
+/* ─── Results panel ─────────────────────────────────────── */
+.metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.metric:last-child { border-bottom: none; }
+.metric .mlabel { font-size: 11.5px; color: var(--muted); }
+.metric .mval   { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ─── Material reference table ───────────────────────────── */
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+.ref-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.ref-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border2);
+  color: var(--text);
+  vertical-align: top;
+}
+.ref-table tr:last-child td { border-bottom: none; }
+.tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.tag-warn  { background: #5a3a1a; color: var(--amber); }
+.tag-crit  { background: #3d1414; color: var(--red); }
+.tag-ok    { background: #1a3a2a; color: var(--green); }
+
+/* ─── Safety notice ─────────────────────────────────────── */
+.safety-box {
+  background: #1a0e0a;
+  border: 1px solid #5a3a1a;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.safety-box .stitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: .5px;
+  margin-bottom: 5px;
+}
+.safety-box p {
+  font-size: 11px;
+  color: #d29f7a;
+  line-height: 1.6;
+}
+
+/* ─── Status / class badge ──────────────────────────────── */
+.motor-class {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c2333;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--blue);
+  font-weight: 700;
+}
+
+/* ─── Burn rate table ───────────────────────────────────── */
+.br-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.br-table th {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.br-table td {
+  text-align: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border2);
+}
+.br-table tr:last-child td { border-bottom: none; }
+.br-table .td-p { color: var(--muted); }
+.br-table .td-r { color: var(--green); font-weight: 600; }
+
+/* ─── Section divider ────────────────────────────────────── */
+.sdiv {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 14px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sdiv::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── Placeholder ────────────────────────────────────────── */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  color: var(--muted);
+  font-size: 12px;
+  gap: 6px;
+}
+.placeholder .icon { font-size: 28px; opacity: .4; }
+
+/* ─── scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <span class="logo">🔥</span>
+  <div>
+    <h1>Internal Ballistics Simulator</h1>
+    <div class="sub">Solid Rocket Motor Analysis — Saint-Robert's Law · QSS Model · Grain Regression</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="nav-btn" href="propellant_calculator.html">← Stoichiometry Calculator</a>
+</header>
+
+<!-- THREE-COLUMN WORKSPACE -->
+<div class="workspace">
+
+  <!-- ══════════════════════════════════════════════════════
+       LEFT PANEL — Config
+  ════════════════════════════════════════════════════════ -->
+  <div class="panel" id="leftPanel">
+
+    <!-- Propellant -->
+    <div class="card">
+      <div class="card-title">Propellant</div>
+      <div id="propList"></div>
+    </div>
+
+    <!-- Grain Geometry -->
+    <div class="card">
+      <div class="card-title">Grain Geometry</div>
+      <label>Type</label>
+      <select id="grainType" onchange="updateGrainUI()">
+        <option value="BATES">BATES (hollow cylinder)</option>
+        <option value="EB">End-Burning (cigarette)</option>
+      </select>
+
+      <div id="batesParams">
+        <label>Outer Radius ro (mm)</label>
+        <input type="number" id="ro_mm" value="30" min="5" max="500" step="0.5">
+        <label>Inner Radius ri (mm)</label>
+        <input type="number" id="ri_mm" value="12" min="1" max="499" step="0.5">
+        <label>Grain Length L (mm)</label>
+        <input type="number" id="Lg_mm" value="75" min="5" max="2000" step="1">
+      </div>
+
+      <div id="ebParams" style="display:none">
+        <label>Grain Radius R (mm)</label>
+        <input type="number" id="Reb_mm" value="25" min="3" max="500" step="0.5">
+        <label>Grain Length L (mm)</label>
+        <input type="number" id="Leb_mm" value="80" min="5" max="2000" step="1">
+      </div>
+    </div>
+
+    <!-- Nozzle -->
+    <div class="card">
+      <div class="card-title">Nozzle</div>
+      <label>Throat Area At (mm²)</label>
+      <input type="number" id="At_mm2" value="45" min="0.5" max="50000" step="0.5">
+      <label>Exit Area Ae (mm²)</label>
+      <input type="number" id="Ae_mm2" value="180" min="1" max="100000" step="1">
+      <div class="metric" style="margin-top:8px">
+        <span class="mlabel">Expansion ratio ε</span>
+        <span class="mval" id="epsDisplay" style="color:var(--blue)">4.00</span>
+      </div>
+    </div>
+
+    <!-- Simulation -->
+    <div class="card">
+      <div class="card-title">Simulation</div>
+      <label>Time Step dt (ms)</label>
+      <input type="number" id="dt_ms" value="0.5" min="0.05" max="10" step="0.05">
+      <label>Ambient Pressure (kPa)</label>
+      <input type="number" id="Pa_kPa" value="101.325" min="0.01" max="200" step="0.1">
+    </div>
+
+    <button class="run-btn" onclick="runSimulation()">▶  Run Simulation</button>
+
+  </div><!-- /leftPanel -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       CENTER PANEL — Charts
+  ════════════════════════════════════════════════════════ -->
+  <div class="center-panel" id="centerPanel">
+
+    <!-- Thrust curve -->
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span class="chart-dot" style="background:var(--blue)"></span>
+        Thrust vs. Time
+        <span style="color:var(--muted);font-size:10.5px;font-weight:400" id="itLabel"></span>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartThrust"></canvas>
+        <div class="placeholder" id="phThrust">
+          <span class="icon">📈</span>Configure and run a simulation
+        </div>
+      </div>
+    </div>
+
+    <!-- Pressure curve -->
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span class="chart-dot" style="background:var(--amber)"></span>
+        Chamber Pressure vs. Time
+        <span style="color:var(--muted);font-size:10.5px;font-weight:400" id="pcLabel"></span>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartPc"></canvas>
+        <div class="placeholder" id="phPc">
+          <span class="icon">📊</span>Pressure trace will appear here
+        </div>
+      </div>
+    </div>
+
+    <!-- Burn rate -->
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span class="chart-dot" style="background:var(--green)"></span>
+        Saint-Robert's Law  —  r = a · Pc ⁿ
+        <span style="color:var(--muted);font-size:10.5px;font-weight:400" id="brLabel"></span>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartBR"></canvas>
+        <div class="placeholder" id="phBR">
+          <span class="icon">🔥</span>Burn rate law will appear here
+        </div>
+      </div>
+    </div>
+
+    <!-- Kn curve -->
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span class="chart-dot" style="background:var(--purple)"></span>
+        Klemmung  Kn = Ab / At  vs. Time
+      </div>
+      <div class="chart-container">
+        <canvas id="chartKn"></canvas>
+        <div class="placeholder" id="phKn">
+          <span class="icon">📉</span>Kn curve will appear here
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /centerPanel -->
+
+
+  <!-- ══════════════════════════════════════════════════════
+       RIGHT PANEL — Results + Material Reference
+  ════════════════════════════════════════════════════════ -->
+  <div class="panel" id="rightPanel">
+
+    <!-- Safety disclaimer -->
+    <div class="safety-box">
+      <div class="stitle">⚠  SAFETY DISCLAIMER</div>
+      <p>This tool is for <strong>educational and theoretical modeling only</strong>.
+        Processing energetic materials requires ATF licensing, certified facilities,
+        and compliance with NFPA 1125 / TRA / NAR codes. Critical temperature limits
+        listed below <strong>must never be exceeded</strong> during fabrication.</p>
+    </div>
+
+    <!-- Simulation Results -->
+    <div class="card">
+      <div class="card-title">Simulation Results</div>
+
+      <div id="resultsPanel">
+        <div style="color:var(--muted);font-size:11.5px;padding:8px 0">
+          Select a propellant and click <strong style="color:var(--text)">▶ Run Simulation</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Burn Rate Table -->
+    <div class="card" id="brCard">
+      <div class="card-title">Burn Rate Reference  (r = a · Pc ⁿ)</div>
+      <div id="brTableDiv" style="color:var(--muted);font-size:11.5px">Select a propellant to see sample burn rates.</div>
+    </div>
+
+    <!-- Material Science Reference -->
+    <div class="card">
+      <div class="card-title">Material Science Reference</div>
+      <div id="matRefDiv" style="color:var(--muted);font-size:11.5px">Select a propellant.</div>
+    </div>
+
+  </div><!-- /rightPanel -->
+
+</div><!-- /workspace -->
+
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════════════
+const G0      = 9.80665;
+const R_UNIV  = 8.31446;
+const MPA     = 1e6;
+const ATM_PA  = 101325;
+
+// ════════════════════════════════════════════════════════════
+//  PROPELLANT DATABASE
+//  All values from peer-reviewed literature.
+//  burn_a: mm/s · MPa^-n   |   Pc in MPa   |   r in mm/s
+// ════════════════════════════════════════════════════════════
+const PROPELLANTS = {
+  KNSB: {
+    name: 'Potassium Nitrate / Sorbitol (65/35)',
+    abbr: 'KNSB',
+    rho:  1879,      // kg/m³
+    Tf:   1720,      // K  — adiabatic flame temp
+    gamma:1.131,
+    MW:   38.90,     // g/mol — mean product MW
+    cstar: 889,      // m/s
+    Isp_vac: 165,    // s
+    Isp_sl:  130,    // s
+    burn_a:  8.26,   // mm/s · MPa^-n
+    burn_n:  0.319,
+    P_min:   1.0,    // MPa
+    P_max:   10.0,
+    // Thermal
+    cure_T:  '95 – 115 °C  (melt-cast, no chemical cure)',
+    cure_t:  '0.5 – 2 h  (solidification)',
+    decomp:  '339 °C  (KNO₃ active decomp onset, DSC)',
+    crit_T:  400,
+    crit_label: '400 °C — KNO₃ → KNO₂ + O₂',
+    color: '#3fb950',
+    note: 'Melt-cast system. No chemical curative. Heat to 95–115 °C. Keep below 200 °C during processing. Avoid contamination with organics or sulfur.',
+    refs: 'Nakka (2023); Kubota (2007)',
+  },
+  KNSU: {
+    name: 'Potassium Nitrate / Sucrose (65/35)',
+    abbr: 'KNSU',
+    rho:  1889,
+    Tf:   1733,
+    gamma:1.134,
+    MW:   38.50,
+    cstar: 908,
+    Isp_vac: 164,
+    Isp_sl:  128,
+    burn_a:  7.96,
+    burn_n:  0.321,
+    P_min:   1.0,
+    P_max:   10.0,
+    cure_T:  '160 – 185 °C  (melt-cast, sucrose mp ≈ 186 °C)',
+    cure_t:  '0.25 – 1 h  (solidification)',
+    decomp:  '300 °C  (sucrose caramelization/decomp)',
+    crit_T:  380,
+    crit_label: '380 °C — propellant thermal runaway',
+    color: '#80cbc4',
+    note: 'Melt-cast. Higher process temp than KNSB. Darkening at 185 °C is acceptable. Use electric heating only; no open flame.',
+    refs: 'Nakka (2023); Sutton & Biblarz (2016)',
+  },
+  APCP_STD: {
+    name: 'AP/HTPB/Al Standard APCP (70/18/12)',
+    abbr: 'APCP-STD',
+    rho:  1786,
+    Tf:   3350,
+    gamma:1.200,
+    MW:   29.00,
+    cstar: 1578,
+    Isp_vac: 242,
+    Isp_sl:  210,
+    burn_a:  5.13,
+    burn_n:  0.350,
+    P_min:   2.0,
+    P_max:   15.0,
+    cure_T:  '50 – 70 °C  (HTPB/IPDI, NCO:OH ≈ 0.85–0.90)',
+    cure_t:  '72 – 168 h  (3–7 days at 60 °C for full crosslink)',
+    decomp:  '240 °C  (AP low-T decomp exotherm, DSC)',
+    crit_T:  300,
+    crit_label: '~300 °C — MIXED APCP auto-ignition (Al/Fe₂O₃ catalysis)',
+    color: '#58a6ff',
+    note: 'Chemically-cured thermosetting composite. Mix HTPB binder + AP (bimodal) + Al; cure 60 °C / 72–120 h. Mixed propellant is friction, impact, and heat sensitive. NEVER heat above 90 °C.',
+    refs: 'Sutton & Biblarz (2016); Kuo & Summerfield (1984)',
+  },
+  APCP_NOAL: {
+    name: 'AP/HTPB — No Metal (80/20)',
+    abbr: 'APCP-NoAl',
+    rho:  1690,
+    Tf:   2800,
+    gamma:1.220,
+    MW:   26.00,
+    cstar: 1470,
+    Isp_vac: 215,
+    Isp_sl:  186,
+    burn_a:  4.20,
+    burn_n:  0.330,
+    P_min:   2.0,
+    P_max:   14.0,
+    cure_T:  '50 – 70 °C  (HTPB/IPDI)',
+    cure_t:  '72 – 168 h',
+    decomp:  '240 °C  (AP decomp onset)',
+    crit_T:  300,
+    crit_label: '~300 °C — auto-ignition',
+    color: '#ce93d8',
+    note: 'Metal-free composite. Cleaner exhaust; lower Isp. Same cure schedule and thermal hazards as APCP-STD.',
+    refs: 'Sutton & Biblarz (2016)',
+  },
+  GAP_AP: {
+    name: 'GAP/AP Energetic Composite (20/60 + 15% TMETN + 5% Al)',
+    abbr: 'GAP-AP',
+    rho:  1760,
+    Tf:   3100,
+    gamma:1.220,
+    MW:   28.50,
+    cstar: 1530,
+    Isp_vac: 255,
+    Isp_sl:  226,
+    burn_a:  6.00,
+    burn_n:  0.380,
+    P_min:   3.0,
+    P_max:   18.0,
+    cure_T:  '40 – 60 °C  (GAP azide binder)',
+    cure_t:  '96 – 240 h  (4–10 days, slower than HTPB)',
+    decomp:  '220 °C  (GAP azide group decomp onset, DSC)',
+    crit_T:  270,
+    crit_label: '270 °C — CRITICAL (azide; lower than HTPB systems)',
+    color: '#e3b341',
+    note: '⚠ ELEVATED HAZARD: GAP contains energetic azide groups (-N₃). Critical threshold (270 °C) is LOWER than HTPB systems. Requires specialized facilities beyond standard APCP.',
+    refs: 'Kubota (2007); Frankel et al. AIAA-92-3461',
+  },
+};
+
+// ════════════════════════════════════════════════════════════
+//  BUILD PROPELLANT RADIO LIST
+// ════════════════════════════════════════════════════════════
+const propListEl = document.getElementById('propList');
+Object.keys(PROPELLANTS).forEach((key, i) => {
+  const p = PROPELLANTS[key];
+  propListEl.innerHTML += `
+    <input type="radio" class="prop-radio" name="prop" id="pr_${key}" value="${key}" ${i===0?'checked':''} onchange="onPropChange()">
+    <label class="prop-card" for="pr_${key}">
+      <div class="pname">${p.abbr}</div>
+      <div class="pmeta">${p.name}</div>
+    </label>`;
+});
+
+// ════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════════
+function getSelectedProp() {
+  const sel = document.querySelector('input[name=prop]:checked');
+  return sel ? PROPELLANTS[sel.value] : PROPELLANTS.KNSB;
+}
+
+function updateGrainUI() {
+  const t = document.getElementById('grainType').value;
+  document.getElementById('batesParams').style.display = t==='BATES' ? '' : 'none';
+  document.getElementById('ebParams').style.display    = t==='EB'    ? '' : 'none';
+}
+
+function updateEps() {
+  const At = +document.getElementById('At_mm2').value;
+  const Ae = +document.getElementById('Ae_mm2').value;
+  document.getElementById('epsDisplay').textContent = At>0 ? (Ae/At).toFixed(2) : '—';
+}
+document.getElementById('At_mm2').addEventListener('input', updateEps);
+document.getElementById('Ae_mm2').addEventListener('input', updateEps);
+
+function onPropChange() {
+  const p = getSelectedProp();
+  renderMaterialRef(p);
+  renderBurnRateTable(p);
+  renderBurnRateChart(p);
+  clearResults();
+}
+
+// ════════════════════════════════════════════════════════════
+//  MATERIAL REFERENCE RENDERER
+// ════════════════════════════════════════════════════════════
+function renderMaterialRef(p) {
+  const critColor = p.crit_T <= 280 ? '#f85149' : '#e3b341';
+  document.getElementById('matRefDiv').innerHTML = `
+    <div class="sdiv">Thermophysical</div>
+    <table class="ref-table">
+      <tr><th>Property</th><th>Value</th></tr>
+      <tr><td>Density ρ</td><td>${p.rho} kg/m³</td></tr>
+      <tr><td>Flame temp Tc</td><td>${p.Tf} K  (${(p.Tf-273.15).toFixed(0)} °C)</td></tr>
+      <tr><td>Specific heats γ</td><td>${p.gamma.toFixed(3)}</td></tr>
+      <tr><td>Product MW</td><td>${p.MW.toFixed(1)} g/mol</td></tr>
+      <tr><td>c* (char. vel.)</td><td>${p.cstar} m/s</td></tr>
+      <tr><td>Isp (vacuum)</td><td>${p.Isp_vac} s</td></tr>
+      <tr><td>Isp (sea-level)</td><td>${p.Isp_sl} s</td></tr>
+    </table>
+
+    <div class="sdiv">Burn Rate Law</div>
+    <table class="ref-table">
+      <tr><th>Parameter</th><th>Value</th></tr>
+      <tr><td>a (coefficient)</td><td>${p.burn_a} mm/s · MPa⁻ⁿ</td></tr>
+      <tr><td>n (exponent)</td><td>${p.burn_n}</td></tr>
+      <tr><td>Valid Pc range</td><td>${p.P_min} – ${p.P_max} MPa</td></tr>
+    </table>
+
+    <div class="sdiv">Thermal Processing</div>
+    <table class="ref-table">
+      <tr><th>Property</th><th>Value</th></tr>
+      <tr><td>Process temp</td><td>${p.cure_T}</td></tr>
+      <tr><td>Cure / set time</td><td>${p.cure_t}</td></tr>
+      <tr><td>Decomp onset</td><td><span class="tag tag-warn">${p.decomp}</span></td></tr>
+      <tr><td>⚠ Critical limit</td><td><span class="tag tag-crit" style="color:${critColor}">${p.crit_label}</span></td></tr>
+    </table>
+
+    <div class="sdiv">Processing Notes</div>
+    <p style="font-size:11.5px;color:var(--muted);line-height:1.6">${p.note}</p>
+    <p style="font-size:10.5px;color:var(--muted);margin-top:6px">Refs: ${p.refs}</p>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════
+//  BURN RATE TABLE RENDERER
+// ════════════════════════════════════════════════════════════
+function renderBurnRateTable(p) {
+  const pressures = [1.0, 1.5, 2.0, 3.0, 3.5, 5.0, 6.9, 8.0, 10.0, 12.0, 15.0]
+    .filter(P => P >= p.P_min && P <= p.P_max);
+
+  let rows = pressures.map(P => {
+    const r = p.burn_a * Math.pow(P, p.burn_n);
+    return `<tr><td class="td-p">${P.toFixed(1)}</td><td class="td-r">${r.toFixed(2)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('brTableDiv').innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+      r = <strong style="color:var(--green)">${p.burn_a}</strong> · Pc<sup>${p.burn_n}</sup>
+      &nbsp;[Pc in MPa, r in mm/s]
+    </div>
+    <table class="br-table">
+      <tr><th>Pc (MPa)</th><th>r (mm/s)</th></tr>
+      ${rows}
+    </table>`;
+}
+
+// ════════════════════════════════════════════════════════════
+//  CHART MANAGEMENT
+// ════════════════════════════════════════════════════════════
+const charts = {};
+
+function makeChart(id, type, datasets, xLabel, yLabel, opts={}) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type,
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#c9d1d9',
+          bodyColor: '#8b949e',
+        },
+      },
+      scales: {
+        x: {
+          title: { display: true, text: xLabel, color: '#8b949e', font: { size: 11 } },
+          ticks: { color: '#8b949e', maxTicksLimit: 8, font: { size: 10 } },
+          grid:  { color: '#21262d' },
+          ...opts.x,
+        },
+        y: {
+          title: { display: true, text: yLabel, color: '#8b949e', font: { size: 11 } },
+          ticks: { color: '#8b949e', maxTicksLimit: 6, font: { size: 10 } },
+          grid:  { color: '#21262d' },
+          ...opts.y,
+        },
+      },
+    },
+  });
+}
+
+function showPlaceholder(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+// ════════════════════════════════════════════════════════════
+//  BURN RATE CHART (Saint-Robert law for selected propellant)
+// ════════════════════════════════════════════════════════════
+function renderBurnRateChart(p) {
+  const nPts = 200;
+  const Pmin = p.P_min, Pmax = p.P_max;
+  const data = Array.from({length: nPts}, (_, i) => {
+    const P = Pmin + (Pmax - Pmin) * i / (nPts - 1);
+    return { x: P, y: p.burn_a * Math.pow(P, p.burn_n) };
+  });
+
+  showPlaceholder('phBR', false);
+  makeChart('chartBR', 'line',
+    [{
+      data,
+      borderColor: '#3fb950',
+      borderWidth: 2.5,
+      pointRadius: 0,
+      fill: { target: 'origin', above: '#3fb95015' },
+    }],
+    'Chamber Pressure (MPa)', 'Burn Rate r (mm/s)',
+  );
+  document.getElementById('brLabel').textContent =
+    `r = ${p.burn_a} · Pc^${p.burn_n}`;
+}
+
+// ════════════════════════════════════════════════════════════
+//  SIMULATION ENGINE
+// ════════════════════════════════════════════════════════════
+
+function saintRobert(p, Pc_Pa) {
+  // Returns burn rate in m/s
+  let Pc_MPa = Math.max(p.P_min, Math.min(p.P_max, Pc_Pa / MPA));
+  return p.burn_a * Math.pow(Pc_MPa, p.burn_n) * 1e-3;
+}
+
+function qssPressure(p, Ab, At) {
+  // Convert a from mm/s·MPa^-n to m/s·Pa^-n
+  const n = p.burn_n;
+  if (n >= 1.0) return NaN;
+  const a_SI = p.burn_a * 1e-3 * Math.pow(MPA, n);
+  const Kn   = Ab / At;
+  return Math.pow(p.rho * a_SI * p.cstar * Kn, 1.0 / (1.0 - n));
+}
+
+function thrustIsp(p, Pc_Pa, At, nozzleEff = 0.95) {
+  // Sea-level Cf from literature Isp
+  const Cf_sl = (p.Isp_sl * G0) / p.cstar;
+  const F     = Cf_sl * Pc_Pa * At;
+  // Mass flow (isentropic nozzle)
+  const R_sp  = R_UNIV / (p.MW * 1e-3);
+  const g     = p.gamma;
+  const Gamma = Math.sqrt(g * Math.pow(2/(g+1), (g+1)/(g-1)));
+  const mdot  = (Pc_Pa * At * Gamma) / Math.sqrt(p.Tf * R_sp);
+  const Isp   = mdot > 0 ? F / (mdot * G0) : 0;
+  return { F, Isp, mdot };
+}
+
+function batesTotal(ro, ri, L) {
+  return Math.max(0, Math.PI*(2*ri)*L + 2*(Math.PI/4)*((2*ro)**2 - (2*ri)**2));
+}
+
+function runSim(p, At, Ae, dt, Pa) {
+  const grainType = document.getElementById('grainType').value;
+
+  // Grain state
+  let ro, ri, Lg, Reb, Leb, burnedOut = false;
+  if (grainType === 'BATES') {
+    ro = +document.getElementById('ro_mm').value * 1e-3;
+    ri = +document.getElementById('ri_mm').value * 1e-3;
+    Lg = +document.getElementById('Lg_mm').value * 1e-3;
+    if (ri >= ro) throw new Error('Inner radius must be less than outer radius.');
+  } else {
+    Reb = +document.getElementById('Reb_mm').value * 1e-3;
+    Leb = +document.getElementById('Leb_mm').value * 1e-3;
+  }
+
+  const t_arr   = [], Pc_arr  = [], F_arr = [];
+  const Isp_arr = [], r_arr   = [], Kn_arr= [];
+
+  let t = 0;
+  const MAX_T = 600;
+
+  while (!burnedOut && t < MAX_T) {
+    let Ab;
+    if (grainType === 'BATES') {
+      Ab = batesTotal(ro, ri, Lg);
+    } else {
+      Ab = Math.PI * Reb * Reb;
+    }
+    if (Ab < 1e-9) break;
+
+    const Pc = qssPressure(p, Ab, At);
+    if (!isFinite(Pc) || Pc <= 0) break;
+
+    const r = saintRobert(p, Pc);     // m/s
+    const {F, Isp} = thrustIsp(p, Pc, At);
+
+    t_arr.push(+t.toFixed(5));
+    Pc_arr.push(Pc);
+    F_arr.push(F);
+    Isp_arr.push(Isp);
+    r_arr.push(r * 1000);             // mm/s
+    Kn_arr.push(Ab / At);
+
+    // Regress grain
+    if (grainType === 'BATES') {
+      ri += r * dt;
+      Lg  = Math.max(0, Lg - 2*r*dt);
+      burnedOut = ri >= ro || Lg <= 0;
+    } else {
+      Leb = Math.max(0, Leb - r*dt);
+      burnedOut = Leb <= 0;
+    }
+    t += dt;
+  }
+
+  if (t_arr.length === 0) throw new Error('Simulation produced no data. Check grain geometry and nozzle sizing.');
+
+  // Total impulse (trapezoidal)
+  let It = 0;
+  for (let i = 1; i < F_arr.length; i++) It += 0.5*(F_arr[i]+F_arr[i-1])*dt;
+
+  const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+  const max  = arr => Math.max(...arr);
+
+  // Propellant mass
+  let prop_mass;
+  if (grainType === 'BATES') {
+    const ro0 = +document.getElementById('ro_mm').value * 1e-3;
+    const ri0 = +document.getElementById('ri_mm').value * 1e-3;
+    const L0  = +document.getElementById('Lg_mm').value * 1e-3;
+    prop_mass = Math.PI*(ro0**2 - ri0**2)*L0 * p.rho;
+  } else {
+    const R0  = +document.getElementById('Reb_mm').value * 1e-3;
+    const Le0 = +document.getElementById('Leb_mm').value * 1e-3;
+    prop_mass = Math.PI*R0**2*Le0 * p.rho;
+  }
+
+  return {
+    t: t_arr, Pc: Pc_arr, F: F_arr, Isp: Isp_arr,
+    r: r_arr, Kn: Kn_arr,
+    burn_time:    t_arr[t_arr.length-1],
+    total_impulse: It,
+    avg_thrust:   mean(F_arr),
+    avg_Pc:       mean(Pc_arr),
+    max_Pc:       max(Pc_arr),
+    avg_Isp:      mean(Isp_arr),
+    avg_r:        mean(r_arr),
+    init_Kn:      Kn_arr[0],
+    prop_mass_g:  prop_mass * 1000,
+    At, Ae,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+//  MOTOR CLASS
+// ════════════════════════════════════════════════════════════
+function motorClass(It) {
+  const tbl = [
+    [0,'sub-A'],[1.25,'A'],[2.5,'B'],[5,'C'],[10,'D'],
+    [20,'E'],[40,'F'],[80,'G'],[160,'H'],[320,'I'],
+    [640,'J'],[1280,'K'],[2560,'L'],[5120,'M'],
+    [10240,'N'],[20480,'O'],
+  ];
+  let cls = 'O+';
+  for (let i = tbl.length-1; i >= 0; i--) {
+    if (It >= tbl[i][0]) { cls = tbl[i][1]; break; }
+  }
+  return cls;
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER RESULTS
+// ════════════════════════════════════════════════════════════
+function fmt(v, d=2) { return isFinite(v) ? v.toFixed(d) : '—'; }
+
+function renderResults(res, p) {
+  const cls = motorClass(res.total_impulse);
+  document.getElementById('resultsPanel').innerHTML = `
+    <div class="metric"><span class="mlabel">Motor Class</span>
+      <span class="mval"><span class="motor-class">${cls}-class</span></span></div>
+    <div class="metric"><span class="mlabel">Burn Time</span>
+      <span class="mval" style="color:var(--text)">${fmt(res.burn_time,3)} s</span></div>
+    <div class="metric"><span class="mlabel">Total Impulse</span>
+      <span class="mval" style="color:var(--blue)">${fmt(res.total_impulse,1)} N·s</span></div>
+    <div class="metric"><span class="mlabel">Avg Thrust</span>
+      <span class="mval" style="color:var(--blue)">${fmt(res.avg_thrust,1)} N</span></div>
+    <div class="metric"><span class="mlabel">Peak Pc</span>
+      <span class="mval" style="color:var(--amber)">${fmt(res.max_Pc/MPA,3)} MPa  (${fmt(res.max_Pc/ATM_PA,1)} atm)</span></div>
+    <div class="metric"><span class="mlabel">Avg Pc</span>
+      <span class="mval" style="color:var(--amber)">${fmt(res.avg_Pc/MPA,3)} MPa</span></div>
+    <div class="metric"><span class="mlabel">Avg Isp</span>
+      <span class="mval" style="color:var(--green)">${fmt(res.avg_Isp,1)} s</span></div>
+    <div class="metric"><span class="mlabel">Avg Burn Rate</span>
+      <span class="mval" style="color:var(--green)">${fmt(res.avg_r,2)} mm/s</span></div>
+    <div class="metric"><span class="mlabel">Init. Kn</span>
+      <span class="mval">${fmt(res.init_Kn,1)}</span></div>
+    <div class="metric"><span class="mlabel">Propellant Mass</span>
+      <span class="mval">${fmt(res.prop_mass_g,1)} g</span></div>
+    <div class="metric"><span class="mlabel">At / Ae / ε</span>
+      <span class="mval">${fmt(res.At*1e6,1)} / ${fmt(res.Ae*1e6,1)} mm²  (${fmt(res.Ae/res.At,2)})</span></div>
+  `;
+}
+
+function clearResults() {
+  document.getElementById('resultsPanel').innerHTML =
+    `<div style="color:var(--muted);font-size:11.5px;padding:8px 0">
+      Select a propellant and click <strong style="color:var(--text)">▶ Run Simulation</strong>.
+    </div>`;
+  document.getElementById('itLabel').textContent = '';
+  document.getElementById('pcLabel').textContent = '';
+}
+
+// ════════════════════════════════════════════════════════════
+//  DOWNSAMPLE helper (keep ≤ N pts for smooth charts)
+// ════════════════════════════════════════════════════════════
+function downsample(arr, N=600) {
+  if (arr.length <= N) return arr;
+  const step = arr.length / N;
+  return Array.from({length: N}, (_, i) => arr[Math.round(i*step)]);
+}
+
+function zipXY(xArr, yArr) {
+  return xArr.map((x,i) => ({ x, y: yArr[i] }));
+}
+
+// ════════════════════════════════════════════════════════════
+//  MAIN SIMULATION ENTRY POINT
+// ════════════════════════════════════════════════════════════
+function runSimulation() {
+  try {
+    const p   = getSelectedProp();
+    const At  = +document.getElementById('At_mm2').value * 1e-6;
+    const Ae  = +document.getElementById('Ae_mm2').value * 1e-6;
+    const dt  = +document.getElementById('dt_ms').value  * 1e-3;
+    const Pa  = +document.getElementById('Pa_kPa').value * 1e3;
+
+    if (At <= 0) throw new Error('Throat area must be > 0.');
+    if (Ae <= At) throw new Error('Exit area must exceed throat area.');
+    if (dt <= 0)  throw new Error('Time step must be > 0.');
+
+    const res = runSim(p, At, Ae, dt, Pa);
+
+    // ── Downsample for chart ──
+    const t_ds  = downsample(res.t);
+    const Pc_ds = downsample(res.Pc).map(v => v/MPA);
+    const F_ds  = downsample(res.F);
+    const r_ds  = downsample(res.r);
+    const Kn_ds = downsample(res.Kn);
+    const Isp_ds= downsample(res.Isp);
+
+    // ── Thrust chart ──
+    showPlaceholder('phThrust', false);
+    makeChart('chartThrust','line',
+      [{
+        data: zipXY(t_ds, F_ds),
+        borderColor: '#58a6ff', borderWidth: 2, pointRadius: 0,
+        fill: { target: 'origin', above: '#58a6ff18' },
+      }],
+      'Time (s)', 'Thrust (N)'
+    );
+    document.getElementById('itLabel').textContent =
+      `· Total Impulse = ${res.total_impulse.toFixed(1)} N·s`;
+
+    // ── Pressure chart ──
+    showPlaceholder('phPc', false);
+    makeChart('chartPc','line',
+      [{
+        data: zipXY(t_ds, Pc_ds),
+        borderColor: '#e3b341', borderWidth: 2, pointRadius: 0,
+        fill: { target: 'origin', above: '#e3b34118' },
+      }],
+      'Time (s)', 'Chamber Pressure (MPa)'
+    );
+    document.getElementById('pcLabel').textContent =
+      `· Peak = ${(res.max_Pc/MPA).toFixed(2)} MPa`;
+
+    // ── Burn rate chart with sim overlay ──
+    const nPts = 200;
+    const Pmin = p.P_min, Pmax = p.P_max;
+    const brLine = Array.from({length: nPts}, (_, i) => {
+      const P = Pmin + (Pmax - Pmin) * i / (nPts-1);
+      return { x: P, y: p.burn_a * Math.pow(P, p.burn_n) };
+    });
+    const simPts = downsample(res.Pc, 300).map((Pc, i) => ({
+      x: Pc/MPA,
+      y: downsample(res.r, 300)[i],
+    }));
+
+    showPlaceholder('phBR', false);
+    makeChart('chartBR','line',
+      [
+        { data: brLine,  borderColor:'#3fb950', borderWidth:2.5, pointRadius:0,
+          fill:{ target:'origin', above:'#3fb95015' } },
+        { data: simPts,  borderColor:'#58a6ff', borderWidth:0,   pointRadius:2,
+          pointBackgroundColor:'#58a6ff55', showLine: false },
+      ],
+      'Chamber Pressure (MPa)', 'Burn Rate r (mm/s)'
+    );
+    document.getElementById('brLabel').textContent =
+      `r = ${p.burn_a} · Pc^${p.burn_n}`;
+
+    // ── Kn chart ──
+    showPlaceholder('phKn', false);
+    makeChart('chartKn','line',
+      [{
+        data: zipXY(t_ds, Kn_ds),
+        borderColor: '#ce93d8', borderWidth: 2, pointRadius: 0,
+        fill: { target: 'origin', above: '#ce93d815' },
+      }],
+      'Time (s)', 'Kn = Ab / At'
+    );
+
+    // ── Results ──
+    renderResults(res, p);
+    renderMaterialRef(p);
+    renderBurnRateTable(p);
+
+  } catch(err) {
+    alert('Simulation error:\n' + err.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  INITIALISE
+// ════════════════════════════════════════════════════════════
+(function init() {
+  const p = getSelectedProp();
+  renderMaterialRef(p);
+  renderBurnRateTable(p);
+  renderBurnRateChart(p);
+  updateEps();
+})();
+</script>
+</body>
+</html>

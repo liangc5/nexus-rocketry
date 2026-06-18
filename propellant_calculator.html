@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solid Propellant Stoichiometry Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --warn: #e3b341;
+    --danger: #f85149;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --card: #21262d;
+    --oxidizer: #4fc3f7;
+    --binder: #81c995;
+    --plasticizer: #ffd54f;
+    --metal: #a0aec0;
+    --energetic: #ff8a80;
+    --additive: #ce93d8;
+    --curative: #80cbc4;
+    --fuel: #a5d6a7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+  header p { color: var(--muted); font-size: 12px; }
+  .badge {
+    background: var(--accent);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 340px;
+    grid-template-rows: auto;
+    min-height: calc(100vh - 55px);
+    gap: 0;
+  }
+
+  /* ===== LEFT PANEL: Ingredient Library ===== */
+  .library-panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .search-box {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-box input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 8px;
+    font-size: 12px;
+    outline: none;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .ingredient-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 4px 0;
+  }
+  .category-section { margin-bottom: 4px; }
+  .category-label {
+    padding: 5px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.2);
+    position: sticky;
+    top: 0;
+  }
+  .ingredient-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-left: 3px solid transparent;
+  }
+  .ingredient-item:hover { background: var(--card); }
+  .ing-info { flex: 1; min-width: 0; }
+  .ing-name { font-size: 12px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ing-formula { font-size: 10px; color: var(--muted); }
+  .ob-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    min-width: 44px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .ob-pos { color: #4fc3f7; }
+  .ob-neg { color: #ff8a80; }
+  .add-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    flex-shrink: 0;
+    font-weight: bold;
+    transition: background 0.1s;
+  }
+  .add-btn:hover { background: #79c0ff; }
+
+  /* Category color borders */
+  .cat-oxidizer { border-left-color: var(--oxidizer) !important; }
+  .cat-binder { border-left-color: var(--binder) !important; }
+  .cat-plasticizer { border-left-color: var(--plasticizer) !important; }
+  .cat-metal_fuel { border-left-color: var(--metal) !important; }
+  .cat-energetic { border-left-color: var(--energetic) !important; }
+  .cat-additive { border-left-color: var(--additive) !important; }
+  .cat-curative { border-left-color: var(--curative) !important; }
+  .cat-fuel { border-left-color: var(--fuel) !important; }
+
+  /* ===== CENTER PANEL: Formulation Builder ===== */
+  .formulation-panel {
+    background: var(--bg);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title span { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+  /* Preset buttons */
+  .preset-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .preset-btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Formulation table */
+  .formulation-table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .form-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .form-table th {
+    background: var(--card);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .form-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    vertical-align: middle;
+  }
+  .form-table tr:last-child td { border-bottom: none; }
+  .form-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .cat-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .ing-display-name { font-weight: 500; }
+  .ing-display-formula { color: var(--muted); font-size: 11px; }
+
+  .mass-input {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 4px 6px;
+    width: 80px;
+    text-align: right;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .mass-input:focus { border-color: var(--accent); }
+  .mass-input.error { border-color: var(--danger); }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 16px;
+    border-radius: 4px;
+    transition: all 0.1s;
+  }
+  .remove-btn:hover { background: rgba(248,81,73,0.15); color: var(--danger); }
+
+  .ob-cell { font-size: 11px; font-weight: 600; }
+
+  /* Sum bar */
+  .sum-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .sum-bar .sum-val { font-weight: 700; font-size: 14px; }
+  .sum-ok { color: var(--accent2); }
+  .sum-warn { color: var(--warn); }
+  .sum-err { color: var(--danger); }
+
+  /* Custom ingredient form */
+  .custom-form {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 3px; }
+  .form-group label { font-size: 11px; color: var(--muted); }
+  .form-group input, .form-group select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 5px 7px;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group input[type="text"] { width: 110px; }
+  .form-group input[type="number"] { width: 80px; }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.1s;
+    height: 28px;
+  }
+  .btn-primary:hover { background: #79c0ff; }
+  .btn-secondary {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.1s;
+    height: 28px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Charts area */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .chart-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .chart-card h3 { font-size: 12px; color: var(--muted); margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chart-wrap { height: 180px; position: relative; }
+
+  /* ===== RIGHT PANEL: Results ===== */
+  .results-panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .result-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-section:last-child { border-bottom: none; }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+  .metric-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .metric-unit { font-size: 11px; color: var(--muted); }
+  .metric-card.highlight { border-color: var(--accent); }
+  .metric-card.warn { border-color: var(--warn); }
+  .metric-card.danger { border-color: var(--danger); }
+  .metric-card.success { border-color: var(--accent2); }
+
+  /* Equivalence ratio bar */
+  .phi-bar-wrap { margin-top: 10px; }
+  .phi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .phi-bar-track {
+    height: 14px;
+    background: var(--card);
+    border-radius: 7px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .phi-bar-fill {
+    height: 100%;
+    border-radius: 7px;
+    transition: width 0.3s, background 0.3s;
+  }
+  .phi-marker {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--text);
+    left: 50%;
+  }
+  .phi-annotations {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Products table */
+  .products-table { width: 100%; margin-top: 8px; border-collapse: collapse; }
+  .products-table td { padding: 3px 6px; font-size: 12px; }
+  .products-table td:first-child { color: var(--muted); width: 60px; }
+  .products-table td:nth-child(2) { font-family: monospace; font-size: 11px; color: var(--accent); width: 65px; }
+  .products-table td:last-child {
+    font-size: 11px;
+    text-align: right;
+  }
+  .prod-bar-cell { width: 100px; }
+  .prod-mini-bar {
+    height: 6px;
+    background: var(--card);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .prod-mini-fill { height: 100%; border-radius: 3px; }
+
+  /* Elemental composition */
+  .elem-table { width: 100%; margin-top: 8px; }
+  .elem-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .elem-sym { width: 28px; font-weight: 700; font-size: 13px; color: var(--text); }
+  .elem-bar-track { flex: 1; height: 8px; background: var(--card); border-radius: 4px; overflow: hidden; }
+  .elem-bar-fill { height: 100%; border-radius: 4px; }
+  .elem-val { font-size: 10px; color: var(--muted); width: 90px; text-align: right; }
+
+  /* Reaction equation */
+  .rxn-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .tag-rich { background: rgba(56,139,253,0.15); color: var(--accent); border: 1px solid var(--accent); }
+  .tag-lean { background: rgba(63,185,80,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
+  .tag-stoich { background: rgba(227,179,65,0.15); color: var(--warn); border: 1px solid var(--warn); }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.4);
+    font-size: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row span:first-child { color: var(--muted); }
+  .info-row span:last-child { font-weight: 600; }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state p { font-size: 12px; }
+
+  /* Tooltip */
+  .tooltip-wrap { position: relative; }
+  .tooltip-wrap:hover .tooltip-box { display: block; }
+  .tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .note { font-size: 10px; color: var(--muted); font-style: italic; }
+  .warn-text { color: var(--warn); }
+  .danger-text { color: var(--danger); }
+  .success-text { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🔥 Solid Propellant Stoichiometry Calculator</h1>
+    <p>Combustion mass balance · Oxygen balance · O/F ratio · Equivalence ratio · Products</p>
+  </div>
+  <span class="badge">v1.0</span>
+</header>
+
+<div class="main-grid">
+
+  <!-- LEFT: LIBRARY -->
+  <div class="library-panel">
+    <div class="panel-header">📚 Ingredient Library</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search ingredients..." oninput="filterIngredients()">
+    </div>
+    <div class="ingredient-list" id="ingredientList"></div>
+  </div>
+
+  <!-- CENTER: FORMULATION BUILDER -->
+  <div class="formulation-panel">
+
+    <!-- Presets -->
+    <div>
+      <div class="section-title">Quick Load <span>— common propellant formulations</span></div>
+      <div class="preset-bar">
+        <button class="preset-btn" onclick="loadPreset('APCP_standard')">AP/HTPB/Al (Standard APCP)</button>
+        <button class="preset-btn" onclick="loadPreset('APCP_noAl')">AP/HTPB (No Metal)</button>
+        <button class="preset-btn" onclick="loadPreset('KNSB')">KNSB (KNO₃/Sorbitol)</button>
+        <button class="preset-btn" onclick="loadPreset('KNSU')">KNSU (KNO₃/Sucrose)</button>
+        <button class="preset-btn" onclick="loadPreset('GAP_AP')">GAP/AP Energetic</button>
+        <button class="preset-btn" onclick="loadPreset('PBAN_SRB')">PBAN/AP (SRB-type)</button>
+        <button class="preset-btn" onclick="loadPreset('nitramine')">AP/HTPB/HMX (Nitramine)</button>
+        <button class="preset-btn" onclick="clearFormulation()">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Formulation Table -->
+    <div>
+      <div class="section-title">Formulation Builder <span>— mass fractions must sum to 100%</span></div>
+      <div class="formulation-table-wrap">
+        <table class="form-table">
+          <thead>
+            <tr>
+              <th style="width:30px"></th>
+              <th>Ingredient</th>
+              <th>Formula</th>
+              <th style="width:95px">Mass %</th>
+              <th style="width:80px">OB% (pure)</th>
+              <th style="width:90px">MW (g/mol)</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="formulationBody">
+            <tr id="emptyRow">
+              <td colspan="7">
+                <div class="empty-state">
+                  <div class="icon">⚗️</div>
+                  <p>Add ingredients from the library or load a preset</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="sum-bar">
+          <div style="display:flex;gap:16px;align-items:center">
+            <span style="color:var(--muted)">Total:</span>
+            <span class="sum-val" id="sumDisplay">0.00%</span>
+          </div>
+          <div id="sumStatus" style="font-size:11px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Ingredient -->
+    <div>
+      <div class="section-title">Add Custom Ingredient <span>— define by empirical formula</span></div>
+      <div class="custom-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="customName" placeholder="My Compound" style="width:130px">
+          </div>
+          <div class="form-group">
+            <label>Formula (e.g. C3H6N6O6)</label>
+            <input type="text" id="customFormula" placeholder="C3H6N6O6" style="width:140px" oninput="parseCustomFormula()">
+          </div>
+          <div class="form-group">
+            <label>MW (g/mol)</label>
+            <input type="number" id="customMW" placeholder="auto" style="width:80px" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="customCategory" style="width:100px">
+              <option value="fuel">Fuel</option>
+              <option value="oxidizer">Oxidizer</option>
+              <option value="binder">Binder</option>
+              <option value="plasticizer">Plasticizer</option>
+              <option value="metal_fuel">Metal Fuel</option>
+              <option value="energetic">Energetic</option>
+              <option value="additive">Additive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn-primary" onclick="addCustomIngredient()">Add</button>
+          </div>
+        </div>
+        <div id="customPreview" style="margin-top:6px;font-size:11px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Composition (by mass %)</h3>
+        <div class="chart-wrap">
+          <canvas id="compositionChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Combustion Products (mol/100g propellant)</h3>
+        <div class="chart-wrap">
+          <canvas id="productsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="results-panel">
+    <div class="panel-header">📊 Analysis Results</div>
+
+    <!-- Key Metrics -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Stoichiometric Metrics</div>
+      <div class="metric-grid">
+        <div class="metric-card" id="card-OB">
+          <div class="metric-label">Oxygen Balance</div>
+          <div class="metric-value" id="val-OB">—</div>
+          <div class="metric-unit">% (g O / 100g prop)</div>
+        </div>
+        <div class="metric-card" id="card-phi">
+          <div class="metric-label">Equiv. Ratio (φ)</div>
+          <div class="metric-value" id="val-phi">—</div>
+          <div class="metric-unit">φ &lt; 1: lean | φ &gt; 1: rich</div>
+        </div>
+        <div class="metric-card" id="card-OF">
+          <div class="metric-label">O/F Ratio (actual)</div>
+          <div class="metric-value" id="val-OF">—</div>
+          <div class="metric-unit">oxidizer / fuel mass</div>
+        </div>
+        <div class="metric-card" id="card-stoichOF">
+          <div class="metric-label">O/F Stoich.</div>
+          <div class="metric-value" id="val-stoichOF">—</div>
+          <div class="metric-unit">for OB = 0</div>
+        </div>
+      </div>
+
+      <!-- Equivalence ratio bar -->
+      <div class="phi-bar-wrap" id="phi-bar-section" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <div class="phi-label">Equivalence Ratio Scale</div>
+          <div id="phi-tag-wrap"></div>
+        </div>
+        <div class="phi-bar-track">
+          <div class="phi-bar-fill" id="phi-bar-fill"></div>
+          <div class="phi-marker"></div>
+        </div>
+        <div class="phi-annotations">
+          <span>Oxidizer-rich (φ→0)</span>
+          <span>Stoichiometric (φ=1)</span>
+          <span>Fuel-rich (φ→∞)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Elemental Composition -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Elemental Composition <span>mol/g mixture</span></div>
+      <div id="elemDisplay"></div>
+    </div>
+
+    <!-- Combustion Products -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Combustion Products <span>per 100g propellant</span></div>
+      <div id="productsDisplay"></div>
+      <div style="margin-top:8px" id="productsNote" class="note"></div>
+    </div>
+
+    <!-- Balanced Equation -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Reaction Summary</div>
+      <div class="rxn-box" id="reactionBox">Add ingredients to see reaction summary</div>
+    </div>
+
+    <!-- Per-component OB breakdown -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Per-Component OB% Contribution</div>
+      <div id="obBreakdown"></div>
+    </div>
+
+    <!-- Chemistry Notes -->
+    <div class="result-section">
+      <div class="section-title" style="margin-bottom:0">Reference</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">
+        <div class="info-row"><span>OB formula</span><span style="font-family:monospace;font-size:10px">(1600/MW)×[O−2C−H/2+Cl/2−1.5Al−Mg−1.5B]</span></div>
+        <div class="info-row"><span>C→CO₂ needs</span><span>2 O-atoms/C</span></div>
+        <div class="info-row"><span>H→H₂O needs</span><span>0.5 O-atoms/H</span></div>
+        <div class="info-row"><span>Al→Al₂O₃ needs</span><span>1.5 O-atoms/Al</span></div>
+        <div class="info-row"><span>Mg→MgO needs</span><span>1 O-atom/Mg</span></div>
+        <div class="info-row"><span>Cl→HCl needs</span><span>1 H-atom/Cl (no O)</span></div>
+        <div class="info-row"><span>N→N₂</span><span>inert (no O)</span></div>
+        <div class="info-row"><span>Combustion model</span><span>priority: Al>Mg>B>H>C</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// INGREDIENT DATABASE
+// ============================================================
+const INGREDIENTS_DB = {
+  // OXIDIZERS
+  'AP':      { name:'Ammonium Perchlorate',       shortName:'AP',       formula:'NH₄ClO₄',      category:'oxidizer',   MW:117.49, atoms:{N:1,H:4,Cl:1,O:4},       density:1.95, notes:'Primary oxidizer in composite solid propellants' },
+  'KNO3':    { name:'Potassium Nitrate',           shortName:'KNO₃',     formula:'KNO₃',          category:'oxidizer',   MW:101.10, atoms:{K:1,N:1,O:3},             density:2.11, notes:'Oxidizer in KNSB/KNSU; black powder propellants' },
+  'AN':      { name:'Ammonium Nitrate',            shortName:'AN',       formula:'NH₄NO₃',        category:'oxidizer',   MW:80.04,  atoms:{N:2,H:4,O:3},             density:1.72, notes:'Low-signature oxidizer; hygroscopic' },
+  'ADN':     { name:'Ammonium Dinitramide',        shortName:'ADN',      formula:'NH₄N(NO₂)₂',   category:'oxidizer',   MW:124.07, atoms:{N:3,H:4,O:4},             density:1.81, notes:'Chlorine-free high-energy oxidizer' },
+  'NTO':     { name:'Nitrotriazolone (NTO)',       shortName:'NTO',      formula:'C₂H₂N₄O₃',     category:'oxidizer',   MW:130.06, atoms:{C:2,H:2,N:4,O:3},         density:1.93, notes:'Insensitive high explosive/oxidizer' },
+
+  // BINDERS
+  'HTPB':    { name:'HTPB (R-45M)',                shortName:'HTPB',     formula:'(C₄H₆)ₙ',       category:'binder',     MW:54.09,  atoms:{C:4,H:6},                  density:0.92, notes:'Most common composite propellant binder; hydroxyl-terminated polybutadiene' },
+  'PBAN':    { name:'PBAN Binder',                 shortName:'PBAN',     formula:'C₇H₁₀N₀.₅',    category:'binder',     MW:107.5,  atoms:{C:7,H:10,N:0.5},           density:0.93, notes:'Polybutadiene acrylonitrile; used in Space Shuttle SRB' },
+  'GAP':     { name:'GAP (Glycidyl Azide Polymer)',shortName:'GAP',      formula:'C₃H₅N₃O',      category:'binder',     MW:99.09,  atoms:{C:3,H:5,N:3,O:1},         density:1.30, notes:'Energetic binder; exothermic decomposition of azide groups' },
+  'CTPB':    { name:'CTPB (Carboxy-Terminated PB)',shortName:'CTPB',    formula:'(C₄H₆)ₙ',       category:'binder',     MW:54.09,  atoms:{C:4,H:6},                  density:0.91, notes:'Older binder; similar to HTPB but with carboxyl end groups' },
+
+  // PLASTICIZERS
+  'DOA':     { name:'Dioctyl Adipate',             shortName:'DOA',      formula:'C₂₂H₄₂O₄',     category:'plasticizer',MW:370.57, atoms:{C:22,H:42,O:4},           density:0.927, notes:'Common inert plasticizer for HTPB; good mechanical properties' },
+  'DOS':     { name:'Dioctyl Sebacate',            shortName:'DOS',      formula:'C₂₆H₅₀O₄',     category:'plasticizer',MW:426.68, atoms:{C:26,H:50,O:4},           density:0.912, notes:'Inert plasticizer; good low-temperature flexibility' },
+  'IDP':     { name:'Isodecyl Pelargonate',        shortName:'IDP',      formula:'C₁₉H₃₈O₂',     category:'plasticizer',MW:298.51, atoms:{C:19,H:38,O:2},           density:0.862, notes:'Inert plasticizer' },
+  'TEGDN':   { name:'Triethylene Glycol Dinitrate',shortName:'TEGDN',   formula:'C₆H₁₂N₂O₈',    category:'plasticizer',MW:240.17, atoms:{C:6,H:12,N:2,O:8},        density:1.33,  notes:'Energetic plasticizer; positive oxygen balance' },
+  'TMETN':   { name:'Trimethylolethane Trinitrate',shortName:'TMETN',   formula:'C₅H₉N₃O₉',     category:'plasticizer',MW:255.14, atoms:{C:5,H:9,N:3,O:9},         density:1.47,  notes:'Energetic plasticizer; used with GAP' },
+  'NG':      { name:'Nitroglycerin',               shortName:'NG',       formula:'C₃H₅N₃O₉',     category:'plasticizer',MW:227.09, atoms:{C:3,H:5,N:3,O:9},         density:1.59,  notes:'Energetic plasticizer; very high oxygen balance' },
+  'DEGDN':   { name:'Diethylene Glycol Dinitrate', shortName:'DEGDN',   formula:'C₄H₈N₂O₇',     category:'plasticizer',MW:196.12, atoms:{C:4,H:8,N:2,O:7},         density:1.39,  notes:'Energetic plasticizer' },
+
+  // METAL FUELS
+  'Al':      { name:'Aluminum',                    shortName:'Al',       formula:'Al',            category:'metal_fuel', MW:26.98,  atoms:{Al:1},                    density:2.70,  notes:'Standard metal fuel; large Isp increase; forms Al₂O₃ condensed phase' },
+  'Mg':      { name:'Magnesium',                   shortName:'Mg',       formula:'Mg',            category:'metal_fuel', MW:24.31,  atoms:{Mg:1},                    density:1.74,  notes:'High heat release; faster ignition than Al' },
+  'B':       { name:'Boron',                       shortName:'B',        formula:'B',             category:'metal_fuel', MW:10.81,  atoms:{B:1},                     density:2.34,  notes:'Very high gravimetric energy; difficult ignition/combustion' },
+  'Zr':      { name:'Zirconium',                   shortName:'Zr',       formula:'Zr',            category:'metal_fuel', MW:91.22,  atoms:{Zr:1},                    density:6.51,  notes:'High volumetric energy; used in pyrotechnics' },
+
+  // ENERGETICS
+  'RDX':     { name:'RDX (Cyclonite)',              shortName:'RDX',      formula:'C₃H₆N₆O₆',     category:'energetic',  MW:222.12, atoms:{C:3,H:6,N:6,O:6},         density:1.82,  notes:'High explosive; used in nitramine composite propellants' },
+  'HMX':     { name:'HMX (Octogen)',                shortName:'HMX',      formula:'C₄H₈N₈O₈',     category:'energetic',  MW:296.16, atoms:{C:4,H:8,N:8,O:8},         density:1.96,  notes:'Higher energy than RDX; used in advanced formulations' },
+  'CL20':    { name:'CL-20 (HNIW)',                shortName:'CL-20',    formula:'C₆H₆N₁₂O₁₂',   category:'energetic',  MW:438.19, atoms:{C:6,H:6,N:12,O:12},       density:2.04,  notes:'Highest energy conventional explosive' },
+  'PETN':    { name:'PETN',                        shortName:'PETN',     formula:'C₅H₈N₄O₁₂',    category:'energetic',  MW:316.14, atoms:{C:5,H:8,N:4,O:12},        density:1.77,  notes:'High explosive; positive OB' },
+
+  // ADDITIVES
+  'Fe2O3':   { name:'Iron Oxide (Fe₂O₃)',           shortName:'Fe₂O₃',   formula:'Fe₂O₃',         category:'additive',   MW:159.69, atoms:{Fe:2,O:3},                density:5.24,  notes:'Burning rate catalyst; increases burn rate significantly' },
+  'CuO':     { name:'Copper Oxide',                shortName:'CuO',      formula:'CuO',           category:'additive',   MW:79.55,  atoms:{Cu:1,O:1},                density:6.31,  notes:'Burning rate modifier' },
+  'CuCr2O4': { name:'Copper Chromite',             shortName:'CuCr₂O₄', formula:'CuCr₂O₄',       category:'additive',   MW:231.55, atoms:{Cu:1,Cr:2,O:4},           density:5.40,  notes:'Burn rate catalyst; commonly used in HTPB/AP' },
+  'C_black':  { name:'Carbon Black',               shortName:'C(black)', formula:'C',             category:'additive',   MW:12.01,  atoms:{C:1},                     density:1.80,  notes:'UV absorber; processing and burn rate modifier' },
+
+  // CURATIVES
+  'IPDI':    { name:'IPDI (Isophorone Diisocyanate)',shortName:'IPDI',   formula:'C₁₂H₁₈N₂O₂',   category:'curative',   MW:222.28, atoms:{C:12,H:18,N:2,O:2},       density:1.06,  notes:'Primary curative for HTPB; reacts with OH groups' },
+  'TDI':     { name:'TDI (Toluene Diisocyanate)',   shortName:'TDI',     formula:'C₉H₆N₂O₂',     category:'curative',   MW:174.16, atoms:{C:9,H:6,N:2,O:2},         density:1.22,  notes:'More reactive curative; volatile' },
+  'DDI':     { name:'DDI (Dimeric Diisocyanate)',   shortName:'DDI',     formula:'C₂₂H₃₆N₂O₂',   category:'curative',   MW:364.54, atoms:{C:22,H:36,N:2,O:2},       density:1.00,  notes:'Low-toxicity curative; used for low-hazard formulations' },
+
+  // FUELS (sugar propellants)
+  'Sorbitol':{ name:'Sorbitol (D-Glucitol)',       shortName:'Sorbitol', formula:'C₆H₁₄O₆',      category:'fuel',       MW:182.17, atoms:{C:6,H:14,O:6},            density:1.49,  notes:'Fuel in KNSB; melt-castable above 95°C' },
+  'Sucrose':  { name:'Sucrose (Sugar)',             shortName:'Sucrose',  formula:'C₁₂H₂₂O₁₁',   category:'fuel',       MW:342.30, atoms:{C:12,H:22,O:11},           density:1.59,  notes:'Fuel in KNSU sugar propellant' },
+  'Dextrose': { name:'Dextrose (Glucose)',         shortName:'Dextrose', formula:'C₆H₁₂O₆',      category:'fuel',       MW:180.16, atoms:{C:6,H:12,O:6},            density:1.54,  notes:'Alternative sugar fuel' },
+};
+
+const CATEGORY_LABELS = {
+  oxidizer:'🔵 Oxidizers', binder:'🟢 Binders', plasticizer:'🟡 Plasticizers',
+  metal_fuel:'⚫ Metal Fuels', energetic:'🔴 Energetics', additive:'🟣 Additives',
+  curative:'🩵 Curatives', fuel:'🌿 Fuels'
+};
+
+const CATEGORY_COLORS = {
+  oxidizer:'#4fc3f7', binder:'#81c995', plasticizer:'#ffd54f',
+  metal_fuel:'#a0aec0', energetic:'#ff8a80', additive:'#ce93d8',
+  curative:'#80cbc4', fuel:'#a5d6a7'
+};
+
+// ============================================================
+// CALCULATION ENGINE
+// ============================================================
+
+function calcOB(ing) {
+  const a = ing.atoms;
+  const nC = a.C||0, nH = a.H||0, nO = a.O||0, nCl = a.Cl||0;
+  const nAl = a.Al||0, nMg = a.Mg||0, nB = a.B||0, nK = a.K||0;
+  // OB% = (1600/MW) × [O - 2C - H/2 + Cl/2 - 1.5Al - Mg - 1.5B - 0.5K]
+  const excessO = nO - 2*nC - 0.5*nH + 0.5*nCl - 1.5*nAl - nMg - 1.5*nB - 0.5*nK;
+  return (1600 / ing.MW) * excessO;
+}
+
+function calcMixture(formulation) {
+  // formulation: [{id, massFrac}, ...]
+  if (!formulation.length) return null;
+
+  // Elemental moles per gram of mixture
+  const E = {}; // element -> mol/g
+  let oxidizerMass = 0, fuelMass = 0;
+  let oxidizerOExcess = 0; // mol O excess per g mixture from oxidizing ingredients
+  let fuelODeficit = 0;   // mol O deficit per g mixture from fuel ingredients
+
+  for (const {id, massFrac} of formulation) {
+    const ing = INGREDIENTS_DB[id];
+    const f = massFrac / 100;
+    for (const [el, n] of Object.entries(ing.atoms)) {
+      E[el] = (E[el]||0) + (n / ing.MW) * f;
+    }
+    // Classify for O/F
+    const ob = calcOB(ing);
+    if (ob > 0) oxidizerMass += massFrac;
+    else fuelMass += massFrac;
+  }
+
+  // Oxygen balance of mixture
+  const nC = E.C||0, nH = E.H||0, nO = E.O||0, nCl = E.Cl||0;
+  const nAl = E.Al||0, nMg = E.Mg||0, nB = E.B||0, nK = E.K||0;
+  const nN = E.N||0, nFe = E.Fe||0, nCu = E.Cu||0, nZr = E.Zr||0;
+  const nCr = E.Cr||0;
+
+  const excessO_mol = nO - 2*nC - 0.5*nH + 0.5*nCl - 1.5*nAl - nMg - 1.5*nB - 0.5*nK - 2*nZr;
+  const OB_mix = excessO_mol * 16 * 100; // g excess O per 100g mixture
+
+  // Equivalence ratio
+  // O_required = all O needed for complete combustion (per gram mixture)
+  const O_req = 2*nC + 0.5*(nH - nCl) + 1.5*nAl + nMg + 1.5*nB + 0.5*nK + 2*nZr;
+  const phi = (nO > 0 && O_req > 0) ? O_req / nO : null;
+
+  // Stoichiometric O/F (mass ratio where OB=0)
+  // OB_mix = 0 means: for two groups (ox, fuel), find ratio
+  // Simplified: stoich mass of ox per mass of fuel
+  let stoichOF = null;
+  if (oxidizerMass > 0 && fuelMass > 0) {
+    // Calculate OB contribution of "pure oxidizer blend" and "pure fuel blend"
+    let ob_ox = 0, ob_fuel = 0;
+    for (const {id, massFrac} of formulation) {
+      const ing = INGREDIENTS_DB[id];
+      const ob = calcOB(ing);
+      if (ob > 0) ob_ox += ob * massFrac / oxidizerMass; // weighted avg
+      else ob_fuel += ob * massFrac / fuelMass;
+    }
+    if (ob_fuel < 0 && ob_ox > 0) {
+      stoichOF = -ob_fuel / ob_ox;
+    }
+  }
+
+  const actualOF = (fuelMass > 0) ? oxidizerMass / fuelMass : null;
+
+  // ---- Combustion Products ----
+  let O = nO, Cl = nCl;
+  const products = {};
+
+  // N → N₂
+  products['N₂'] = { mol: nN / 2, name: 'Nitrogen', color: '#64b5f6', phase:'g' };
+
+  // Cl → HCl (consumes H)
+  let H = Math.max(0, nH - Cl);
+  products['HCl'] = { mol: Cl, name: 'Hydrogen chloride', color: '#ef9a9a', phase:'g' };
+
+  // Zr → ZrO₂ (2 O per Zr)
+  const O_for_Zr = 2 * nZr;
+  if (O >= O_for_Zr) { O -= O_for_Zr; products['ZrO₂'] = { mol: nZr, name: 'Zirconium oxide', color: '#b0bec5', phase:'c' }; }
+  else { products['ZrO₂'] = { mol: O/2, name: 'Zirconium oxide', color: '#b0bec5', phase:'c' }; products['Zr(s)'] = { mol: nZr - O/2, name: 'Zr (unreacted)', color: '#78909c', phase:'c' }; O = 0; }
+
+  // Al → Al₂O₃ (1.5 O per Al)
+  const O_for_Al = 1.5 * nAl;
+  if (O >= O_for_Al) {
+    O -= O_for_Al;
+    products['Al₂O₃'] = { mol: nAl/2, name: 'Alumina', color: '#bcaaa4', phase:'c' };
+  } else {
+    const Al_ox = O / 1.5;
+    products['Al₂O₃'] = { mol: Al_ox/2, name: 'Alumina', color: '#bcaaa4', phase:'c' };
+    products['Al(s)'] = { mol: nAl - Al_ox, name: 'Aluminum (unreacted)', color: '#90a4ae', phase:'c' };
+    O = 0;
+  }
+
+  // Mg → MgO
+  const O_for_Mg = nMg;
+  if (O >= O_for_Mg) { O -= O_for_Mg; products['MgO'] = { mol: nMg, name: 'Magnesia', color: '#cfd8dc', phase:'c' }; }
+  else { products['MgO'] = { mol: O, name: 'Magnesia', color: '#cfd8dc', phase:'c' }; products['Mg(s)'] = { mol: nMg - O, name: 'Mg (unreacted)', color: '#90a4ae', phase:'c' }; O = 0; }
+
+  // B → B₂O₃ (1.5 O per B)
+  const O_for_B = 1.5 * nB;
+  if (O >= O_for_B) { O -= O_for_B; products['B₂O₃'] = { mol: nB/2, name: 'Boron oxide', color: '#ffe082', phase:'c' }; }
+  else { const B_ox = O/1.5; products['B₂O₃'] = { mol: B_ox/2, name: 'Boron oxide', color: '#ffe082', phase:'c' }; products['B(s)'] = { mol: nB - B_ox, name: 'Boron (unreacted)', color: '#ffd54f', phase:'c' }; O = 0; }
+
+  // K → K₂O (0.5 O per K, simplified)
+  const O_for_K = 0.5 * nK;
+  if (O >= O_for_K) { O -= O_for_K; products['K₂O'] = { mol: nK/2, name: 'Potassium oxide', color: '#ce93d8', phase:'c' }; }
+  else { products['K₂O'] = { mol: O, name: 'Potassium oxide', color: '#ce93d8', phase:'c' }; O = 0; }
+
+  // H → H₂O (0.5 O per H)
+  const O_for_H = 0.5 * H;
+  if (O >= O_for_H) {
+    O -= O_for_H;
+    products['H₂O'] = { mol: H/2, name: 'Water vapor', color: '#81d4fa', phase:'g' };
+  } else {
+    const H_ox = O * 2;
+    products['H₂O'] = { mol: H_ox/2, name: 'Water vapor', color: '#81d4fa', phase:'g' };
+    products['H₂'] = { mol: (H - H_ox)/2, name: 'Hydrogen gas', color: '#80cbc4', phase:'g' };
+    O = 0;
+  }
+
+  // C → CO₂ or CO or C(s)
+  if (O >= 2*nC) {
+    O -= 2*nC;
+    products['CO₂'] = { mol: nC, name: 'Carbon dioxide', color: '#a5d6a7', phase:'g' };
+    if (O > 1e-10) products['O₂'] = { mol: O/2, name: 'Excess oxygen', color: '#ff8a80', phase:'g' };
+  } else if (O >= nC) {
+    // Mix of CO₂ and CO: CO2 = O-nC, CO = 2nC-O
+    products['CO₂'] = { mol: O - nC, name: 'Carbon dioxide', color: '#a5d6a7', phase:'g' };
+    products['CO'] = { mol: 2*nC - O, name: 'Carbon monoxide', color: '#ffcc80', phase:'g' };
+    O = 0;
+  } else {
+    products['CO'] = { mol: O, name: 'Carbon monoxide', color: '#ffcc80', phase:'g' };
+    products['C(s)'] = { mol: nC - O, name: 'Solid carbon (soot)', color: '#616161', phase:'c' };
+    O = 0;
+  }
+
+  // Filter near-zero products
+  for (const k of Object.keys(products)) {
+    if ((products[k].mol || 0) < 1e-9) delete products[k];
+  }
+
+  // Scale to per 100g
+  for (const k of Object.keys(products)) {
+    products[k].mol100 = products[k].mol * 100;
+  }
+
+  return {
+    elements: E,
+    OB: OB_mix,
+    phi,
+    actualOF,
+    stoichOF,
+    oxidizerMass,
+    fuelMass,
+    O_req,
+    products,
+    excessO_mol
+  };
+}
+
+// ============================================================
+// FORMULATION STATE
+// ============================================================
+let formulation = []; // [{id, massFrac}]
+let compChart = null, prodChart = null;
+let customCount = 0;
+
+function addIngredient(id, defaultFrac) {
+  if (formulation.find(f => f.id === id)) {
+    // Already present — just highlight
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (row) { row.style.background='rgba(88,166,255,0.15)'; setTimeout(()=>row.style.background='',600); }
+    return;
+  }
+  const frac = defaultFrac !== undefined ? defaultFrac : 10;
+  formulation.push({ id, massFrac: frac });
+  renderFormulation();
+  calculate();
+}
+
+function removeIngredient(id) {
+  formulation = formulation.filter(f => f.id !== id);
+  renderFormulation();
+  calculate();
+}
+
+function updateMassFrac(id, val) {
+  const item = formulation.find(f => f.id === id);
+  if (item) { item.massFrac = parseFloat(val) || 0; }
+  calculate();
+  updateSumBar();
+}
+
+function clearFormulation() {
+  formulation = [];
+  renderFormulation();
+  calculate();
+}
+
+// ============================================================
+// PRESETS
+// ============================================================
+const PRESETS = {
+  APCP_standard: [
+    {id:'AP', massFrac:68}, {id:'HTPB', massFrac:12}, {id:'Al', massFrac:18},
+    {id:'DOA', massFrac:1.5}, {id:'IPDI', massFrac:0.5}
+  ],
+  APCP_noAl: [
+    {id:'AP', massFrac:80}, {id:'HTPB', massFrac:14}, {id:'DOS', massFrac:4}, {id:'IPDI', massFrac:2}
+  ],
+  KNSB: [
+    {id:'KNO3', massFrac:65}, {id:'Sorbitol', massFrac:35}
+  ],
+  KNSU: [
+    {id:'KNO3', massFrac:65}, {id:'Sucrose', massFrac:35}
+  ],
+  GAP_AP: [
+    {id:'AP', massFrac:60}, {id:'GAP', massFrac:20}, {id:'TMETN', massFrac:15}, {id:'Al', massFrac:5}
+  ],
+  PBAN_SRB: [
+    {id:'AP', massFrac:69.6}, {id:'PBAN', massFrac:12.0}, {id:'Al', massFrac:16.0},
+    {id:'Fe2O3', massFrac:0.4}, {id:'DOA', massFrac:2.0}
+  ],
+  nitramine: [
+    {id:'AP', massFrac:60}, {id:'HMX', massFrac:10}, {id:'HTPB', massFrac:12},
+    {id:'Al', massFrac:16}, {id:'DOA', massFrac:1.5}, {id:'IPDI', massFrac:0.5}
+  ]
+};
+
+function loadPreset(name) {
+  formulation = PRESETS[name].map(p => ({...p}));
+  renderFormulation();
+  calculate();
+}
+
+// ============================================================
+// RENDER FORMULATION TABLE
+// ============================================================
+function renderFormulation() {
+  const tbody = document.getElementById('formulationBody');
+  if (formulation.length === 0) {
+    tbody.innerHTML = `<tr id="emptyRow"><td colspan="7"><div class="empty-state"><div class="icon">⚗️</div><p>Add ingredients from the library or load a preset</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = '';
+  for (const {id, massFrac} of formulation) {
+    const ing = INGREDIENTS_DB[id];
+    const ob = calcOB(ing);
+    const catColor = CATEGORY_COLORS[ing.category] || '#aaa';
+    const obClass = ob >= 0 ? 'ob-pos' : 'ob-neg';
+    const tr = document.createElement('tr');
+    tr.dataset.id = id;
+    tr.innerHTML = `
+      <td><span class="cat-dot" style="background:${catColor}"></span></td>
+      <td>
+        <div class="ing-display-name">${ing.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${ing.notes ? ing.notes.substring(0,50)+'…' : ''}</div>
+      </td>
+      <td><code style="font-size:11px">${ing.formula}</code></td>
+      <td>
+        <input class="mass-input" type="number" value="${massFrac}" min="0" max="100" step="0.1"
+          onchange="updateMassFrac('${id}', this.value)"
+          oninput="updateMassFrac('${id}', this.value)">
+        <span style="font-size:11px;color:var(--muted)"> %</span>
+      </td>
+      <td class="ob-cell ${obClass}">${ob.toFixed(1)}%</td>
+      <td style="font-size:12px;color:var(--muted)">${ing.MW.toFixed(2)}</td>
+      <td><button class="remove-btn" onclick="removeIngredient('${id}')" title="Remove">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+  updateSumBar();
+}
+
+function updateSumBar() {
+  const sum = formulation.reduce((s, f) => s + (f.massFrac||0), 0);
+  const sumEl = document.getElementById('sumDisplay');
+  const statusEl = document.getElementById('sumStatus');
+  sumEl.textContent = sum.toFixed(2) + '%';
+  const diff = Math.abs(sum - 100);
+  if (diff < 0.01) {
+    sumEl.className = 'sum-val sum-ok';
+    statusEl.innerHTML = '<span style="color:var(--accent2)">✓ Valid formulation</span>';
+  } else if (diff < 5) {
+    sumEl.className = 'sum-val sum-warn';
+    statusEl.innerHTML = `<span style="color:var(--warn)">Δ ${(sum-100).toFixed(2)}% from 100%</span>`;
+  } else {
+    sumEl.className = 'sum-val sum-err';
+    statusEl.innerHTML = `<span style="color:var(--danger)">Δ ${(sum-100).toFixed(2)}% from 100%</span>`;
+  }
+}
+
+// ============================================================
+// CALCULATE & RENDER RESULTS
+// ============================================================
+function calculate() {
+  if (!formulation.length) {
+    resetResults();
+    updateCharts(null);
+    return;
+  }
+  const R = calcMixture(formulation);
+  renderResults(R);
+  updateCharts(R);
+}
+
+function resetResults() {
+  ['val-OB','val-phi','val-OF','val-stoichOF'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('elemDisplay').innerHTML = '';
+  document.getElementById('productsDisplay').innerHTML = '';
+  document.getElementById('productsNote').textContent = '';
+  document.getElementById('reactionBox').textContent = 'Add ingredients to see reaction summary';
+  document.getElementById('obBreakdown').innerHTML = '';
+  document.getElementById('phi-bar-section').style.display = 'none';
+}
+
+function renderResults(R) {
+  // OB
+  const obEl = document.getElementById('val-OB');
+  const obCard = document.getElementById('card-OB');
+  obEl.textContent = R.OB.toFixed(2);
+  obEl.style.color = R.OB > 0.5 ? '#4fc3f7' : R.OB < -0.5 ? '#ff8a80' : '#3fb950';
+  obCard.className = 'metric-card ' + (R.OB > 1 ? 'highlight' : R.OB < -1 ? 'danger' : 'success');
+
+  // Phi
+  const phiEl = document.getElementById('val-phi');
+  const phiCard = document.getElementById('card-phi');
+  if (R.phi !== null) {
+    phiEl.textContent = R.phi.toFixed(3);
+    phiEl.style.color = R.phi > 1.05 ? '#ff8a80' : R.phi < 0.95 ? '#4fc3f7' : '#3fb950';
+    phiCard.className = 'metric-card ' + (R.phi > 1.1 ? 'danger' : R.phi < 0.9 ? 'highlight' : 'success');
+
+    // Phi bar
+    document.getElementById('phi-bar-section').style.display = 'block';
+    const phiFill = document.getElementById('phi-bar-fill');
+    // Map phi on a log scale: 0→0%, 1→50%, ∞→100%
+    const pct = Math.min(100, Math.max(0, (Math.log(R.phi + 0.001) / Math.log(20) + 0.5) * 100));
+    phiFill.style.width = pct + '%';
+    phiFill.style.background = R.phi > 1.1 ? 'var(--danger)' : R.phi < 0.9 ? 'var(--accent)' : 'var(--accent2)';
+    const tagWrap = document.getElementById('phi-tag-wrap');
+    if (R.phi > 1.05) tagWrap.innerHTML = '<span class="tag tag-rich">Fuel-Rich</span>';
+    else if (R.phi < 0.95) tagWrap.innerHTML = '<span class="tag tag-lean">Oxidizer-Rich</span>';
+    else tagWrap.innerHTML = '<span class="tag tag-stoich">Near Stoich.</span>';
+  } else {
+    phiEl.textContent = '—';
+    document.getElementById('phi-bar-section').style.display = 'none';
+  }
+
+  // O/F
+  const ofEl = document.getElementById('val-OF');
+  if (R.actualOF !== null) {
+    ofEl.textContent = R.actualOF.toFixed(3);
+    ofEl.style.color = 'var(--text)';
+  } else {
+    ofEl.textContent = '—';
+  }
+
+  // Stoich O/F
+  const sofEl = document.getElementById('val-stoichOF');
+  if (R.stoichOF !== null) {
+    sofEl.textContent = R.stoichOF.toFixed(3);
+    sofEl.style.color = 'var(--warn)';
+  } else {
+    sofEl.textContent = '—';
+  }
+
+  // Elemental composition
+  renderElements(R.elements);
+
+  // Products
+  renderProducts(R.products, R);
+
+  // Reaction box
+  renderReaction(R);
+
+  // OB breakdown
+  renderOBBreakdown();
+}
+
+function renderElements(E) {
+  const el = document.getElementById('elemDisplay');
+  if (!Object.keys(E).length) { el.innerHTML = ''; return; }
+  const maxVal = Math.max(...Object.values(E));
+  const colors = { C:'#81c995', H:'#80cbc4', O:'#4fc3f7', N:'#ce93d8', Cl:'#ffcc80', Al:'#a0aec0', Mg:'#cfd8dc', B:'#ffe082', K:'#ff8a80', Fe:'#bcaaa4', Cu:'#ffb74d', Zr:'#b0bec5' };
+  let html = '<div class="elem-table">';
+  for (const [sym, mol] of Object.entries(E).sort((a,b)=>b[1]-a[1])) {
+    if (mol < 1e-9) continue;
+    const pct = (mol / maxVal * 100);
+    const color = colors[sym] || '#888';
+    html += `<div class="elem-row">
+      <span class="elem-sym">${sym}</span>
+      <div class="elem-bar-track"><div class="elem-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="elem-val">${mol.toExponential(3)} mol/g</span>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderProducts(products, R) {
+  const el = document.getElementById('productsDisplay');
+  const noteEl = document.getElementById('productsNote');
+  if (!Object.keys(products).length) { el.innerHTML=''; return; }
+
+  const sorted = Object.entries(products).filter(([k,v])=>v.mol100>1e-6).sort((a,b)=>b[1].mol100-a[1].mol100);
+  const maxMol = sorted.length ? sorted[0][1].mol100 : 1;
+
+  let html = '<table class="products-table">';
+  for (const [species, info] of sorted) {
+    const pct = (info.mol100 / maxMol * 100);
+    const phaseIcon = info.phase === 'g' ? '(g)' : '(c)';
+    html += `<tr>
+      <td>${species}</td>
+      <td>${phaseIcon}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--text)">${info.mol100.toFixed(4)}</td>
+      <td class="prod-bar-cell">
+        <div class="prod-mini-bar"><div class="prod-mini-fill" style="width:${pct}%;background:${info.color}"></div></div>
+      </td>
+      <td>${info.name}</td>
+    </tr>`;
+  }
+  html += '</table>';
+  el.innerHTML = html;
+
+  // Note
+  const hasAl2O3 = products['Al₂O₃'] && products['Al₂O₃'].mol100 > 0;
+  const hasSoot = products['C(s)'] && products['C(s)'].mol100 > 0;
+  const hasCO = products['CO'] && products['CO'].mol100 > 0;
+  const hasO2 = products['O₂'] && products['O₂'].mol100 > 0;
+  let notes = [];
+  if (hasAl2O3) notes.push('Al₂O₃ condenses to two-phase exhaust → reduced Isp');
+  if (hasSoot) notes.push('Solid carbon (soot) indicates incomplete combustion');
+  if (hasCO) notes.push('CO present — consider increasing oxidizer fraction');
+  if (hasO2) notes.push('Excess O₂ indicates oxidizer-rich mixture');
+  noteEl.textContent = notes.join(' · ');
+}
+
+function renderReaction(R) {
+  const el = document.getElementById('reactionBox');
+  const sum = formulation.reduce((s,f)=>s+f.massFrac,0);
+  if (Math.abs(sum-100) > 0.1) {
+    el.textContent = `⚠ Mass fractions sum to ${sum.toFixed(2)}% — results may be inaccurate`;
+    return;
+  }
+
+  // Build a simplified textual reaction
+  let reactants = formulation.map(f => {
+    const ing = INGREDIENTS_DB[f.id];
+    const moles = (f.massFrac / 100) / ing.MW;
+    return `${moles.toFixed(5)} mol/g × ${ing.shortName || ing.name}`;
+  });
+
+  let prods = Object.entries(R.products)
+    .filter(([k,v])=>v.mol100>1e-6)
+    .map(([k,v])=>`${(v.mol100/100).toFixed(5)} mol/g ${k}`);
+
+  const obStr = R.OB >= 0 ? `+${R.OB.toFixed(2)}` : R.OB.toFixed(2);
+  const phiStr = R.phi !== null ? R.phi.toFixed(3) : 'N/A';
+  const regime = R.phi > 1.05 ? 'FUEL-RICH' : R.phi < 0.95 ? 'OXIDIZER-RICH' : 'NEAR-STOICHIOMETRIC';
+
+  el.textContent =
+`─── INPUTS (per gram propellant) ───
+${reactants.join('\n')}
+
+─── PRODUCTS (complete combustion model) ───
+${prods.join('\n')}
+
+─── SUMMARY ───
+OB (mixture)  = ${obStr} g O₂ / 100g
+φ (equiv. ratio) = ${phiStr}  [${regime}]
+O/F (actual)  = ${R.actualOF !== null ? R.actualOF.toFixed(3) : 'N/A'}
+O/F (stoich.) = ${R.stoichOF !== null ? R.stoichOF.toFixed(3) : 'N/A'}`;
+}
+
+function renderOBBreakdown() {
+  const el = document.getElementById('obBreakdown');
+  if (!formulation.length) { el.innerHTML = ''; return; }
+
+  let html = '<table style="width:100%;margin-top:8px;border-collapse:collapse">';
+  html += '<tr style="font-size:10px;color:var(--muted)"><th style="text-align:left;padding:2px 4px">Ingredient</th><th style="text-align:right;padding:2px 4px">OB% (pure)</th><th style="text-align:right;padding:2px 4px">Mass%</th><th style="text-align:right;padding:2px 4px">OB Contrib.</th></tr>';
+
+  let totalContrib = 0;
+  for (const {id, massFrac} of formulation) {
+    const ing = INGREDIENTS_DB[id];
+    const ob = calcOB(ing);
+    const contrib = ob * massFrac / 100;
+    totalContrib += contrib;
+    const c = ob >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const cc = contrib >= 0 ? 'var(--accent)' : 'var(--danger)';
+    html += `<tr style="font-size:11px;border-bottom:1px solid rgba(48,54,61,0.4)">
+      <td style="padding:3px 4px">${ing.shortName || ing.name}</td>
+      <td style="text-align:right;color:${c};font-weight:600;padding:3px 4px">${ob.toFixed(1)}%</td>
+      <td style="text-align:right;color:var(--muted);padding:3px 4px">${massFrac.toFixed(1)}%</td>
+      <td style="text-align:right;color:${cc};font-weight:600;padding:3px 4px">${contrib.toFixed(2)}</td>
+    </tr>`;
+  }
+  const tc = totalContrib >= 0 ? 'var(--accent)' : 'var(--danger)';
+  html += `<tr style="font-size:12px;font-weight:700;border-top:2px solid var(--border)">
+    <td colspan="3" style="padding:4px">Mixture OB%</td>
+    <td style="text-align:right;color:${tc};padding:4px">${totalContrib.toFixed(2)}</td>
+  </tr>`;
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function updateCharts(R) {
+  updateCompositionChart();
+  updateProductsChart(R);
+}
+
+function updateCompositionChart() {
+  const ctx = document.getElementById('compositionChart').getContext('2d');
+  if (compChart) { compChart.destroy(); compChart = null; }
+  if (!formulation.length) return;
+
+  compChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: formulation.map(f => INGREDIENTS_DB[f.id].shortName || INGREDIENTS_DB[f.id].name),
+      datasets: [{
+        data: formulation.map(f => f.massFrac),
+        backgroundColor: formulation.map(f => CATEGORY_COLORS[INGREDIENTS_DB[f.id].category] + 'cc'),
+        borderColor: formulation.map(f => CATEGORY_COLORS[INGREDIENTS_DB[f.id].category]),
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.label}: ${ctx.raw.toFixed(1)}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateProductsChart(R) {
+  const ctx = document.getElementById('productsChart').getContext('2d');
+  if (prodChart) { prodChart.destroy(); prodChart = null; }
+  if (!R || !Object.keys(R.products).length) return;
+
+  const gasProds = Object.entries(R.products).filter(([k,v])=>v.phase==='g' && v.mol100>1e-6);
+  gasProds.sort((a,b)=>b[1].mol100-a[1].mol100);
+
+  prodChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: gasProds.map(([k])=>k),
+      datasets: [{
+        data: gasProds.map(([k,v])=>v.mol100),
+        backgroundColor: gasProds.map(([k,v])=>v.color+'cc'),
+        borderColor: gasProds.map(([k,v])=>v.color),
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: {display:false}, tooltip: { callbacks: { label: (c)=>` ${c.raw.toFixed(4)} mol/100g` }}},
+      scales: {
+        y: { grid:{color:'rgba(48,54,61,0.5)'}, ticks:{color:'#8b949e',font:{size:10}}, title:{display:true,text:'mol/100g',color:'#8b949e',font:{size:10}} },
+        x: { grid:{display:false}, ticks:{color:'#c9d1d9',font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ============================================================
+// LIBRARY RENDER
+// ============================================================
+function buildLibrary() {
+  const container = document.getElementById('ingredientList');
+  const cats = [...new Set(Object.values(INGREDIENTS_DB).map(i=>i.category))];
+  const order = ['oxidizer','binder','plasticizer','metal_fuel','energetic','fuel','additive','curative'];
+  cats.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+
+  container.innerHTML = '';
+  for (const cat of cats) {
+    const items = Object.entries(INGREDIENTS_DB).filter(([id,ing])=>ing.category===cat);
+    if (!items.length) continue;
+    const section = document.createElement('div');
+    section.className = 'category-section';
+    section.dataset.cat = cat;
+    section.innerHTML = `<div class="category-label">${CATEGORY_LABELS[cat]||cat}</div>`;
+    for (const [id, ing] of items) {
+      const ob = calcOB(ing);
+      const obClass = ob >= 0 ? 'ob-pos' : 'ob-neg';
+      const catColor = CATEGORY_COLORS[cat]||'#aaa';
+      const div = document.createElement('div');
+      div.className = `ingredient-item cat-${cat}`;
+      div.dataset.id = id;
+      div.dataset.name = ing.name.toLowerCase();
+      div.title = ing.notes || '';
+      div.innerHTML = `
+        <div class="ing-info">
+          <div class="ing-name">${ing.name}</div>
+          <div class="ing-formula">${ing.formula} · ${ing.MW.toFixed(2)} g/mol</div>
+        </div>
+        <span class="ob-badge ${obClass}">${ob.toFixed(1)}%</span>
+        <button class="add-btn" onclick="addIngredient('${id}')" title="Add to formulation">+</button>
+      `;
+      section.appendChild(div);
+    }
+    container.appendChild(section);
+  }
+}
+
+function filterIngredients() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.ingredient-item').forEach(item => {
+    const match = item.dataset.name.includes(q) || item.dataset.id.toLowerCase().includes(q);
+    item.style.display = match ? '' : 'none';
+  });
+  document.querySelectorAll('.category-section').forEach(sec => {
+    const visible = [...sec.querySelectorAll('.ingredient-item')].some(i=>i.style.display!=='none');
+    sec.style.display = visible ? '' : 'none';
+  });
+}
+
+// ============================================================
+// CUSTOM INGREDIENT
+// ============================================================
+function parseChemFormula(str) {
+  // Parse formula like C3H6N6O6 or C7.332H10.972O0.134
+  const atoms = {};
+  const re = /([A-Z][a-z]?)(\d+\.?\d*)?/g;
+  let m;
+  while ((m = re.exec(str)) !== null) {
+    const el = m[1];
+    const n = m[2] ? parseFloat(m[2]) : 1;
+    atoms[el] = (atoms[el]||0) + n;
+  }
+  // Compute MW from atoms
+  const MW_table = {H:1.008,C:12.011,N:14.007,O:15.999,F:18.998,Na:22.990,Mg:24.305,Al:26.982,Si:28.086,P:30.974,S:32.06,Cl:35.45,K:39.098,Ca:40.078,Cr:51.996,Fe:55.845,Co:58.933,Cu:63.546,Zn:65.38,Br:79.904,Zr:91.224,Ag:107.868,I:126.904,Ba:137.327,Pb:207.2};
+  let MW = 0;
+  for (const [el,n] of Object.entries(atoms)) MW += (MW_table[el]||0)*n;
+  return {atoms, MW};
+}
+
+function parseCustomFormula() {
+  const fStr = document.getElementById('customFormula').value;
+  if (!fStr) { document.getElementById('customPreview').textContent=''; return; }
+  const {atoms, MW} = parseChemFormula(fStr);
+  document.getElementById('customMW').placeholder = MW.toFixed(2);
+  const tempIng = {atoms, MW};
+  const ob = calcOB(tempIng);
+  document.getElementById('customPreview').innerHTML =
+    `Parsed: ${JSON.stringify(atoms)} · MW=${MW.toFixed(2)} g/mol · OB% = <b style="color:${ob>=0?'#4fc3f7':'#ff8a80'}">${ob.toFixed(1)}%</b>`;
+}
+
+function addCustomIngredient() {
+  const name = document.getElementById('customName').value.trim() || 'Custom';
+  const fStr = document.getElementById('customFormula').value.trim();
+  if (!fStr) { alert('Enter a formula'); return; }
+  const {atoms, MW: parsedMW} = parseChemFormula(fStr);
+  const MW = parseFloat(document.getElementById('customMW').value) || parsedMW;
+  const cat = document.getElementById('customCategory').value;
+  const id = 'custom_' + (++customCount);
+  INGREDIENTS_DB[id] = {
+    name, shortName: name, formula: fStr,
+    category: cat, MW, atoms, density: 1.0, notes: 'User-defined ingredient'
+  };
+  buildLibrary();
+  addIngredient(id, 10);
+  // Reset form
+  document.getElementById('customName').value = '';
+  document.getElementById('customFormula').value = '';
+  document.getElementById('customMW').value = '';
+  document.getElementById('customPreview').textContent = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+buildLibrary();
+loadPreset('APCP_standard');
+</script>
+</body>
+</html>
