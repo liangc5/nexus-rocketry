@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 NEXUS — High-Power Rocketry Simulation Suite v3.0
 ═══════════════════════════════════════════════════
@@ -182,7 +182,7 @@ PROPELLANTS: Dict[str, PropellantData] = {
         cure_t='72–168 h (3–7 days at 60 °C)',
         decomp_onset=240.0, decomp_crit=300.0,
         crit_label='~300 °C — AP/Al matrix auto-ignition',
-        process_note='⚠ Chemically-cured thermosetting composite. NEVER heat above 90 °C. Mixed propellant is sensitive to friction, impact, and heat. Handle only in approved facilities.',
+        process_note='Chemically-cured thermosetting composite. NEVER heat above 90 °C. Mixed propellant is sensitive to friction, impact, and heat. Handle only in approved facilities.',
         refs='Sutton & Biblarz (2016); Kuo & Summerfield (1984)',
     ),
     'APCP_NOAL': PropellantData(
@@ -212,7 +212,7 @@ PROPELLANTS: Dict[str, PropellantData] = {
         cure_t='96–240 h',
         decomp_onset=220.0, decomp_crit=270.0,
         crit_label='270 °C — CRITICAL: azide (-N₃) decomposition (lower than HTPB systems)',
-        process_note='⚠ ELEVATED HAZARD: GAP contains energetic azide groups (-N₃). Critical threshold significantly lower than HTPB. Requires specialist certified facility. Not recommended for amateur use.',
+        process_note='ELEVATED HAZARD: GAP contains energetic azide groups (-N₃). Critical threshold significantly lower than HTPB. Requires specialist certified facility. Not recommended for amateur use.',
         refs='Kubota (2007); Frankel et al. AIAA-92-3461',
     ),
 }
@@ -735,7 +735,7 @@ def generate_eng(res: Dict, prop: PropellantData, grain: BATESGrain,
         f'; Isp_avg   : {res["avg_Isp"]:.1f} s',
         f'; Profile   : {res["profile"]}',
         f'; mp        : {res["prop_mass_kg"]*1e3:.1f} g',
-        f'; ⚠ THEORETICAL SIMULATION ONLY — Verify experimentally before flight',
+        f'; THEORETICAL SIMULATION ONLY — Verify experimentally before flight',
         f'; Refs: {prop.refs}',
         f'; ──────────────────────────────────────────────────────',
         f'{motor_name} {diam_mm:.1f} {len_mm:.1f} 0 {prop_kg:.4f} {tot_kg:.4f} NEXUS-SIM',
@@ -814,7 +814,7 @@ def generate_json(res: Dict, prop: PropellantData, grain: BATESGrain,
         },
         'structural': struct_report or {},
         'disclaimers': [
-            '⚠ DISCLAIMER: This simulation is for academic and theoretical purposes only.',
+            'DISCLAIMER: Theoretical simulation only — verify experimentally before flight.',
             'All values are QSS approximations. Actual performance may differ significantly.',
             'Processing energetic propellants requires ATF licensing and certified facilities.',
             'HPR activities must comply with NAR/TRA certification and NFPA 1127.',
@@ -1160,18 +1160,17 @@ def inject_css() -> None:
 
 <style>
 /* ════════════════════════════════════════════════════
-   NEXUS — Precision Instrument × Spatial Glass
-   Hybrid A+C: cockpit semantics + visionOS depth
+   NEXUS — Spatial Glass
+   Deep dark base, frosted glass cards, indigo depth
    ════════════════════════════════════════════════════ */
 
 /* ── Base & Background ─────────────────────────────── */
 .stApp {
-  background: #060910 !important;
+  background: #08090c !important;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-image:
-    radial-gradient(ellipse 70% 45% at 30% -5%, rgba(20,60,160,0.16) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(200,130,20,0.07) 0%, transparent 50%),
-    radial-gradient(ellipse 40% 30% at 10% 80%, rgba(20,80,50,0.06) 0%, transparent 50%) !important;
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.11) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 85% 20%, rgba(139,92,246,0.06) 0%, transparent 50%) !important;
 }
 .main .block-container {
   padding-top: 0;
@@ -1222,7 +1221,7 @@ def inject_css() -> None:
 .stTabs [aria-selected="true"] {
   background: transparent !important;
   color: #fff !important;
-  border-bottom: 2px solid #e8b84b !important;
+  border-bottom: 2px solid #818cf8 !important;
   font-weight: 600;
 }
 .stTabs [data-baseweb="tab-panel"] {
@@ -1526,14 +1525,14 @@ def inject_css() -> None:
 /* ── Motor class badge ──────────────────────────────── */
 .motor-badge {
   display: inline-block;
-  background: rgba(232,184,75,0.08);
-  border: 1px solid rgba(232,184,75,0.28);
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1));
+  border: 1px solid rgba(129,140,248,0.3);
   border-radius: 10px;
   padding: 0.3rem 1.1rem;
   font-family: 'JetBrains Mono', monospace;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #e8b84b;
+  color: #a5b4fc;
 }
 
 /* ── Status boxes ───────────────────────────────────── */
@@ -1641,7 +1640,7 @@ def nexus_header() -> None:
 <div style="padding:1.2rem 0 1.1rem; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:1.8rem; display:flex; align-items:center; gap:1.2rem;">
   <div>
     <div style="display:flex; align-items:center; gap:0.75rem;">
-      <div style="width:28px; height:28px; background:linear-gradient(135deg,rgba(20,60,180,0.85),rgba(40,100,220,0.7)); border:1px solid rgba(60,120,240,0.35); border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; font-weight:700; color:#90b8f0; letter-spacing:-0.05em; flex-shrink:0;">N</div>
+      <div style="width:28px; height:28px; background:linear-gradient(135deg,#6366f1,#8b5cf6); border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; font-weight:700; color:#fff; letter-spacing:-0.05em; flex-shrink:0;">N</div>
       <div class="nexus-h1">NEXUS</div>
     </div>
     <div class="nexus-subtitle" style="padding-left:2.65rem;">Solid Rocket Motor Simulation &nbsp;·&nbsp; v3.0</div>
@@ -1651,7 +1650,7 @@ def nexus_header() -> None:
     <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Grain Regression</span>
     <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Structural</span>
     <span style="font-family:'Inter',sans-serif; font-size:0.72rem; color:rgba(255,255,255,0.18); font-weight:500;">Flight</span>
-    <div style="background:rgba(232,184,75,0.08); border:1px solid rgba(232,184,75,0.22); border-radius:6px; padding:0.25rem 0.75rem; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:600; color:#e8b84b; letter-spacing:0.06em;">SIMULATION SUITE</div>
+    <div style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:6px; padding:0.25rem 0.75rem; font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:600; color:#818cf8; letter-spacing:0.06em;">SIMULATION SUITE</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1822,7 +1821,7 @@ def render_disclaimer() -> None:
      border-radius:6px; padding:0.75rem 1rem; margin-top:1.5rem;
      font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:#994455;
      letter-spacing:0.05em; line-height:1.8;">
-⚠ DISCLAIMER — FOR ACADEMIC AND EDUCATIONAL USE ONLY ⚠<br>
+DISCLAIMER — FOR ACADEMIC AND EDUCATIONAL USE ONLY<br>
 All simulation values are quasi-steady-state theoretical approximations. Actual motor performance
 may differ significantly. Processing energetic propellants requires ATF LEUP licensing and certified
 facilities. High-power rocketry activities must comply with NAR/TRA certification requirements and
@@ -1938,7 +1937,7 @@ def main() -> None:
         # Validation warnings
         _warnings = render_validation_warnings(ro_mm, ri_mm, L_mm, int(n_seg), Dt_mm, De_mm, wall_mm, prop, mat_key)
         for _w in _warnings:
-            st.markdown(f'<div class="warn-box">⚠ {_w}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="warn-box">{_w}</div>', unsafe_allow_html=True)
 
         # ── Section 8: Save / Load ──────────────────────────────────────
         st.markdown('<p class="nexus-section">8 · Save / Load</p>', unsafe_allow_html=True)
@@ -2068,7 +2067,7 @@ def main() -> None:
             cls = res['motor_class']
             sf  = strct['SF_yield'] if strct else 0
             sf_color = 'green' if sf >= 4 else 'orange' if sf >= 2 else 'red'
-            sf_label = '✅ PASS' if sf >= 2 else '❌ FAIL'
+            sf_label = 'PASS' if sf >= 2 else 'FAIL'
 
             st.markdown(f"""
 <div class="nexus-card">
@@ -2104,11 +2103,11 @@ def main() -> None:
 
             # Warnings
             if res['min_Jpt'] < 2.0:
-                st.markdown('<div class="warn-box">⚠ Port-to-throat ratio J < 2.0 — Elevated erosive burning risk. Consider increasing core diameter or reducing At.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warn-box">Port-to-throat ratio J &lt; 2.0 — elevated erosive burning risk. Consider increasing core diameter or reducing throat area.</div>', unsafe_allow_html=True)
             if res['max_Kn'] > 600:
-                st.markdown('<div class="warn-box">⚠ Kn > 600 — Chamber pressure may exceed valid range for Saint-Robert law. Review nozzle sizing.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warn-box">Kn &gt; 600 — chamber pressure may exceed the valid range for Saint-Robert law. Review nozzle sizing.</div>', unsafe_allow_html=True)
             if strct and strct['SF_yield'] < 2.0:
-                st.markdown('<div class="danger-box">🛑 Structural safety factor SF < 2.0 — Casing design is UNSAFE. Increase wall thickness immediately.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="danger-box">Structural safety factor SF &lt; 2.0 — casing design is unsafe at peak pressure. Increase wall thickness.</div>', unsafe_allow_html=True)
 
             # Metrics row — semantic color-coded instrument cards with fill bars
             _tw  = res['max_thrust'] / (launch_mass_kg * G0)
@@ -2116,45 +2115,50 @@ def main() -> None:
             _sf_str = f'{_sf:.2f}' if strct else 'N/A'
             _tw_str = f'{_tw:.2f}'
 
-            # Semantic status colours
-            sf_border  = 'rgba(112,216,122,0.22)' if _sf >= 4 else 'rgba(232,184,75,0.28)' if _sf >= 2 else 'rgba(232,96,96,0.28)'
-            sf_color   = '#70d87a' if _sf >= 4 else '#e8b84b' if _sf >= 2 else '#e86060'
-            sf_sub     = 'PASS' if _sf >= 2 else 'FAIL'
-            sf_sub_col = '#70d87a' if _sf >= 2 else '#e86060'
-            tw_border  = 'rgba(112,216,122,0.22)' if _tw > 5 else 'rgba(232,184,75,0.28)' if _tw > 1 else 'rgba(232,96,96,0.28)'
-            tw_color   = '#70d87a' if _tw > 5 else '#e8b84b' if _tw > 1 else '#e86060'
-            tw_sub     = 'LIFTS OFF' if _tw > 5 else 'LOW T/W' if _tw > 1 else 'NO LIFTOFF'
-            tw_sub_col = '#70d87a' if _tw > 5 else '#e8b84b' if _tw > 1 else '#e86060'
+            # Contextual status colours — only SF and T/W cards get colour; rest are glass-neutral
+            _dim_val   = 'rgba(255,255,255,0.82)'
+            _dim_sub   = 'rgba(255,255,255,0.2)'
+            _dim_bdr   = 'rgba(255,255,255,0.08)'
+            _acc       = '#818cf8'   # indigo accent for fill bars
+
+            sf_border  = 'rgba(112,216,122,0.22)' if _sf >= 4 else 'rgba(232,184,75,0.22)' if _sf >= 2 else 'rgba(232,96,96,0.22)'
+            sf_color   = '#70d87a'  if _sf >= 4 else '#e8b84b'  if _sf >= 2 else '#e86060'
+            sf_sub     = 'SF ≥ 4 — safe'   if _sf >= 4 else 'SF 2–4 — marginal' if _sf >= 2 else 'SF < 2 — unsafe'
+            sf_sub_col = '#70d87a'  if _sf >= 4 else '#e8b84b'  if _sf >= 2 else '#e86060'
+            tw_border  = 'rgba(112,216,122,0.22)' if _tw > 5  else 'rgba(232,184,75,0.22)'  if _tw > 1 else 'rgba(232,96,96,0.22)'
+            tw_color   = '#70d87a'  if _tw > 5  else '#e8b84b'  if _tw > 1 else '#e86060'
+            tw_sub     = 'T/W > 5'          if _tw > 5  else 'T/W 1–5'          if _tw > 1 else 'T/W < 1'
+            tw_sub_col = '#70d87a'  if _tw > 5  else '#e8b84b'  if _tw > 1 else '#e86060'
 
             # Fill bar widths (0-100%)
-            it_pct     = min(100, res['total_impulse'] / 5000 * 100)
-            th_pct     = min(100, res['max_thrust']    / 1000 * 100)
-            pc_pct     = min(100, res['max_Pc_MPa']    / 15   * 100)
-            isp_pct    = min(100, res['avg_Isp']       / 300  * 100)
-            tb_pct     = min(100, res['burn_time']      / 15   * 100)
-            sf_pct     = min(100, _sf                  / 8    * 100)
-            tw_pct     = min(100, _tw                  / 10   * 100)
+            it_pct  = min(100, res['total_impulse'] / 5000 * 100)
+            th_pct  = min(100, res['max_thrust']    / 1000 * 100)
+            pc_pct  = min(100, res['max_Pc_MPa']    / 15   * 100)
+            isp_pct = min(100, res['avg_Isp']       / 300  * 100)
+            tb_pct  = min(100, res['burn_time']      / 15   * 100)
+            sf_pct  = min(100, _sf                  / 8    * 100)
+            tw_pct  = min(100, _tw                  / 10   * 100)
 
-            def _mc(label, value, color, border, sub, sub_col, bar_pct):
+            def _mc(label, value, val_col, border, sub, sub_col, bar_col, bar_pct):
                 return f"""
-<div style="background:rgba(255,255,255,0.032);border:1px solid {border};border-radius:11px;padding:0.85rem 1rem 0.7rem;backdrop-filter:blur(10px);transition:border-color 0.2s;">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.22);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.35rem;">{label}</div>
-  <div style="font-family:'JetBrains Mono',monospace;font-size:1.45rem;font-weight:500;color:{color};letter-spacing:-0.02em;line-height:1;">{value}</div>
-  <div style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:{sub_col};margin-top:0.25rem;letter-spacing:0.07em;">{sub}</div>
-  <div style="height:2px;background:rgba(255,255,255,0.06);border-radius:1px;margin-top:0.55rem;overflow:hidden;">
-    <div style="height:100%;width:{bar_pct:.0f}%;background:{color};border-radius:1px;"></div>
+<div style="background:rgba(255,255,255,0.03);border:1px solid {border};border-radius:12px;padding:0.9rem 1rem 0.75rem;backdrop-filter:blur(12px);transition:border-color 0.2s,background 0.2s;">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.63rem;color:rgba(255,255,255,0.2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.4rem;">{label}</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;color:{val_col};letter-spacing:-0.02em;line-height:1;">{value}</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:{sub_col};margin-top:0.28rem;letter-spacing:0.06em;">{sub}</div>
+  <div style="height:2px;background:rgba(255,255,255,0.05);border-radius:1px;margin-top:0.6rem;overflow:hidden;">
+    <div style="height:100%;width:{bar_pct:.0f}%;background:{bar_col};border-radius:1px;opacity:0.7;"></div>
   </div>
 </div>"""
 
             st.markdown(f"""
-<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1.1rem;">
-  {_mc('Total Impulse', f'{res["total_impulse"]:.0f} N·s', '#60b8e8', 'rgba(96,184,232,0.2)', f'Class {cls}', '#60b8e8', it_pct)}
-  {_mc('Max Thrust', f'{res["max_thrust"]:.0f} N', '#60b8e8', 'rgba(96,184,232,0.2)', f'Avg {res["avg_thrust"]:.0f} N', 'rgba(255,255,255,0.2)', th_pct)}
-  {_mc('Max Pc', f'{res["max_Pc_MPa"]:.2f} MPa', '#e8b84b', 'rgba(232,184,75,0.22)', f'Kn {res["max_Kn"]:.0f}', 'rgba(255,255,255,0.2)', pc_pct)}
-  {_mc('Avg Isp', f'{res["avg_Isp"]:.0f} s', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0.09)', f'r̄ {res["avg_r"]:.1f} mm/s', 'rgba(255,255,255,0.2)', isp_pct)}
-  {_mc('Burn Time', f'{res["burn_time"]:.2f} s', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0.09)', f'{res["prop_mass_kg"]*1e3:.1f} g prop', 'rgba(255,255,255,0.2)', tb_pct)}
-  {_mc('Struct. SF', _sf_str, sf_color, sf_border, sf_sub, sf_sub_col, sf_pct)}
-  {_mc('Max T/W', _tw_str, tw_color, tw_border, tw_sub, tw_sub_col, tw_pct)}
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1.2rem;">
+  {_mc('Total Impulse', f'{res["total_impulse"]:.0f} N·s', _dim_val, _dim_bdr, f'Class {cls}', _dim_sub, _acc, it_pct)}
+  {_mc('Max Thrust',    f'{res["max_thrust"]:.0f} N',       _dim_val, _dim_bdr, f'Avg {res["avg_thrust"]:.0f} N', _dim_sub, _acc, th_pct)}
+  {_mc('Max Pc',        f'{res["max_Pc_MPa"]:.2f} MPa',    _dim_val, _dim_bdr, f'Kn {res["max_Kn"]:.0f}', _dim_sub, _acc, pc_pct)}
+  {_mc('Avg Isp',       f'{res["avg_Isp"]:.0f} s',          _dim_val, _dim_bdr, f'r = {res["avg_r"]:.1f} mm/s', _dim_sub, _acc, isp_pct)}
+  {_mc('Burn Time',     f'{res["burn_time"]:.2f} s',         _dim_val, _dim_bdr, f'{res["prop_mass_kg"]*1e3:.1f} g propellant', _dim_sub, _acc, tb_pct)}
+  {_mc('Struct. SF',    _sf_str,                             sf_color, sf_border, sf_sub, sf_sub_col, sf_color, sf_pct)}
+  {_mc('Max T/W',       _tw_str,                             tw_color, tw_border, tw_sub, tw_sub_col, tw_color, tw_pct)}
 </div>
 """, unsafe_allow_html=True)
             if _tw < 1:
@@ -2200,7 +2204,7 @@ def main() -> None:
   {kv('Cure temperature', _prop.cure_T)}
   {kv('Cure time',        _prop.cure_t)}
   {kv('Decomp onset',     f'{_prop.decomp_onset} °C')}
-  {kv('Critical temp ⚠',  f'{_prop.decomp_crit} °C', 'red')}
+  {kv('Critical temp',  f'{_prop.decomp_crit} °C', 'red')}
   <br>
   <div style="font-size:0.68rem; color:#ff9560; font-family:Share Tech Mono,monospace;">{_prop.crit_label}</div>
   <br>
@@ -2240,7 +2244,7 @@ def main() -> None:
   {kv('Maximum Kn',   f'{res["max_Kn"]:.1f}', 'orange')}
   {kv('At (throat)',  f'{_At*1e6:.3f} mm²')}
   {kv('Min J (Ap/At)', f'{res["min_Jpt"]:.2f}', 'red' if res["min_Jpt"] < 2.0 else 'green')}
-  {kv('Port-to-throat', '⚠ EROSIVE RISK' if res["min_Jpt"] < 2.0 else '✅ OK', 'red' if res["min_Jpt"] < 2.0 else 'green')}
+  {kv('Port-to-throat', 'EROSIVE RISK' if res["min_Jpt"] < 2.0 else 'OK', 'red' if res["min_Jpt"] < 2.0 else 'green')}
 </div>
 """, unsafe_allow_html=True)
 
@@ -2283,7 +2287,7 @@ def main() -> None:
   {kv('r @ {:.1f} MPa'.format(prop.P_min), f'{prop.burn_a*prop.P_min**prop.burn_n:.3f} mm/s')}
   {kv('r @ 5.0 MPa',       f'{prop.burn_a*5.0**prop.burn_n:.3f} mm/s' if prop.P_min<=5<=prop.P_max else '—')}
   {kv('r @ {:.1f} MPa'.format(prop.P_max), f'{prop.burn_a*prop.P_max**prop.burn_n:.3f} mm/s')}
-  {kv('Stability (n<1)',   '✅ STABLE' if prop.burn_n < 1 else '❌ UNSTABLE', 'green' if prop.burn_n<1 else 'red')}
+  {kv('Stability (n<1)',   'STABLE' if prop.burn_n < 1 else 'UNSTABLE', 'green' if prop.burn_n<1 else 'red')}
 </div>
 """, unsafe_allow_html=True)
         with c2:
@@ -2319,7 +2323,7 @@ def main() -> None:
                 sf = strct['SF_yield']
                 ok = strct['SF_ok']
                 box_class = 'ok-box' if sf >= 4 else 'warn-box' if sf >= 2 else 'danger-box'
-                icon = '✅' if sf >= 4 else '⚠' if sf >= 2 else '🛑'
+                icon = 'PASS' if sf >= 4 else 'MARGINAL' if sf >= 2 else 'FAIL'
 
                 st.markdown(f'<div class="{box_class}">{icon} Safety Factor (yield) = {sf:.3f}  |  Wall type: {strct["wall_type"]}  |  t/ri = {strct["t_ratio"]:.4f}</div>', unsafe_allow_html=True)
 
@@ -2343,7 +2347,7 @@ def main() -> None:
   {kv('SF_yield',        f'{strct["SF_yield"]:.3f}', 'green' if strct["SF_yield"]>=4 else 'orange' if strct["SF_yield"]>=2 else 'red')}
   {kv('SF_ult',          f'{strct["SF_ult"]:.3f}')}
   {kv('Est. burst Pc',   f'{strct["burst_MPa"]:.2f} MPa', 'cyan')}
-  {kv('Status',          '✅ PASS (SF≥4)' if sf>=4 else '⚠ MARGINAL (2≤SF<4)' if sf>=2 else '🛑 FAIL (SF<2)',
+  {kv('Status',          'PASS  (SF ≥ 4)' if sf>=4 else 'MARGINAL  (2 ≤ SF < 4)' if sf>=2 else 'FAIL  (SF < 2)',
        'green' if sf>=4 else 'orange' if sf>=2 else 'red')}
 </div>
 """, unsafe_allow_html=True)
@@ -2763,9 +2767,9 @@ Each class is exactly double the previous. A "full H" motor = 320 N·s exactly.
 **Plain English:** If SF = 4, your casing is 4× stronger than it needs to be to survive the peak pressure. SF = 1 means you're exactly at the breaking point — any variation and it fails.
 
 **Recommended minimum SF values for HPR casings:**
-- SF ≥ 4.0 ✅ — Standard design guideline (accounts for material variability, dynamic loading, thermal effects)
-- SF 2.0–4.0 ⚠️ — Marginal. Requires engineering analysis and justification
-- SF < 2.0 🛑 — **DO NOT FLY.** Casing will likely fail.
+- SF ≥ 4.0 — Standard design guideline (accounts for material variability, dynamic loading, thermal effects)
+- SF 2.0–4.0 — Marginal. Requires engineering analysis and justification
+- SF < 2.0 — DO NOT FLY. Casing will likely fail at peak pressure.
 
 **Hoop Stress** is the stress trying to split the cylinder lengthwise (like a soda can bursting). It's always higher than axial stress for a cylinder under internal pressure — this is what usually fails first.
 
@@ -2898,7 +2902,7 @@ Each class is exactly double the previous. A "full H" motor = 320 N·s exactly.
 
 **Min J (port/throat)** — Should stay above 2.0 to avoid erosive burning.
 
-**Struct. SF** — Structural safety factor. Green ✅ = SF ≥ 4, Orange ⚠️ = SF 2–4, Red 🛑 = SF < 2 (unsafe)."""
+**Struct. SF** — Structural safety factor. SF ≥ 4 = safe, SF 2–4 = marginal, SF < 2 = unsafe."""
     },
     {
         "tags": ["decomp","decomposition","temperature","safe temperature","processing temperature","heat","critical temp","auto ignition"],
@@ -2913,7 +2917,7 @@ Each class is exactly double the previous. A "full H" motor = 320 N·s exactly.
 1. **KNSB** — Onset 339°C, Critical 400°C. Most forgiving. Widest safety margin.
 2. **KNSU** — Onset 300°C, Critical 380°C. Slightly less margin, higher processing temp needed.
 3. **APCP** — Onset 240°C, Critical 300°C. Never exceed 90°C during processing — far below onset, but exothermic cure reaction adds heat.
-4. **GAP-AP** — Onset 220°C, Critical 270°C. ⚠️ Energetic azide groups. Specialist facility only.
+4. **GAP-AP** — Onset 220°C, Critical 270°C. Energetic azide groups. Specialist facility only.
 
 **Golden rules:**
 - Always use electric heating (no open flames)
@@ -2943,7 +2947,7 @@ Each class is exactly double the previous. A "full H" motor = 320 N·s exactly.
 - Up to 200 time-thrust data points (downsampled if needed)
 - Comments with all simulation parameters
 
-⚠️ **Important:** This is a theoretical simulation. Real motor performance will differ. Always static-fire test before flight and record your actual thrust curve.
+Note: This is a theoretical simulation. Real motor performance will differ. Always static-fire test before flight and record your actual thrust curve.
 
 **Ref:** thrustcurve.org/info/raspformat.html"""
     },
@@ -2965,7 +2969,7 @@ So if chamber pressure is 5 MPa, inner radius is 38 mm, and wall is 3 mm:
 σ\\_hoop = 5 × 38/3 = 63.3 MPa
 
 Compare this to your material's yield strength (Sy):
-- 6061-T6 aluminum: Sy = 276 MPa → SF = 276/63.3 = **4.36 ✅**
+- 6061-T6 aluminum: Sy = 276 MPa → SF = 276/63.3 = **4.36**
 
 **Ref:** Shigley's §3-14; Roark's §13"""
     },
@@ -3234,7 +3238,7 @@ CP_nose ≈ 0.67 × nose_length for an ogive, 0.5 × nose_length for a cone
 **Practical verification:**
 1. Calculate CP with Barrowman or OpenRocket/RASAero
 2. Build/weigh rocket with full propellant loaded → measure CG
-3. Swing test (pendulum): Tie string at CG — if rocket swings to horizontal, CP is aft of CG ✅
+3. Swing test (pendulum): Tie string at CG — if rocket swings to horizontal, CP is aft of CG.
 4. Static margin should be 2–3 calibers with motor loaded
 
 **Warning:** CG moves FORWARD as propellant burns (propellant mass is aft). Check stability at both ignition (heaviest) and burnout (lightest propellant). Motor burnout is often the most critical stability point."""
@@ -4074,7 +4078,7 @@ _PROP_PARAMS = {
         'eta_cs': 0.94, 'eta_dp': 0.98,
         'target_kn': '200–400', 'target_pc': '5–15 MPa',
         'notes': (
-            "⚠️ **GAP-AP is NOT for beginners.** This is a specialist energetic propellant "
+            "**GAP-AP is not recommended for beginners.** This is a specialist energetic propellant "
             "with a critical temperature of only 270 °C (much lower than HTPB systems).\n\n"
             "**Requires:** Certified facility, ATF LEUP, experienced mentorship.\n\n"
             "**Why it's used:** Highest burn rate among the options — used when compact "
@@ -4245,14 +4249,14 @@ def _troubleshoot_answer(q: str, res: dict | None, strct: dict | None) -> dict |
             t4 = strct['t_req_SF4_mm']
             lines.append(f"**Your Safety Factor (yield) = {sf:.2f}** | Von Mises stress = {vm:.1f} MPa\n\n")
             if sf < 2:
-                lines.append(f"🛑 **CRITICAL — DO NOT FLY.** SF < 2 means the casing will likely fail at peak pressure.\n\n")
+                lines.append(f"**CRITICAL — DO NOT FLY.** SF < 2 means the casing will likely fail at peak pressure.\n\n")
                 lines.append(f"**Fix:** Increase wall thickness to at least **{t4:.2f} mm** (for SF = 4.0), or switch to a stronger material like 4130 Steel or Carbon Fiber/Epoxy.")
             elif sf < 4:
-                lines.append(f"⚠️ **Marginal** — SF between 2 and 4. Minimum for flight is SF ≥ 4 per HPR guidelines.\n\n")
+                lines.append(f"**Marginal** — SF between 2 and 4. Minimum for flight is SF ≥ 4 per HPR guidelines.\n\n")
                 lines.append(f"**Recommended wall thickness for SF = 4:** **{t4:.2f} mm**\n")
                 lines.append(f"Currently using: {strct.get('t_ratio', 0)*100:.1f}% of inner radius. Increase wall thickness.")
             else:
-                lines.append(f"✅ **Structural margin is good.** SF = {sf:.2f} ≥ 4.0 — casing is safe at peak pressure.")
+                lines.append(f"**Structural margin is good.** SF = {sf:.2f} ≥ 4.0 — casing is safe at peak pressure.")
 
     elif 'isp' in q or 'thrust' in q or 'impulse' in q or 'class' in q:
         lines.append(f"**Your motor:** Class **{res['motor_class']}** | It = {res['total_impulse']:.1f} N·s | Fmax = {res['max_thrust']:.1f} N | Isp = {res['avg_Isp']:.1f} s | tb = {res['burn_time']:.3f} s\n\n")
@@ -4375,7 +4379,7 @@ def render_ai_tab(res, strct, _prop, _grain, _At, _Ae, _ecs, _edp, prop, n_seg, 
 
     # Live sim context banner
     if res:
-        sf_col = "🟢" if strct and strct['SF_yield'] >= 4 else "🟡" if strct and strct['SF_yield'] >= 2 else "🔴"
+        sf_col = "PASS" if strct and strct['SF_yield'] >= 4 else "MARGINAL" if strct and strct['SF_yield'] >= 2 else "FAIL"
         st.markdown(f"""
 <div style="background:rgba(0,212,255,0.06); border:1px solid #1a3a60; border-radius:8px; padding:0.7rem 1.1rem; margin-bottom:1rem; font-family:Share Tech Mono,monospace; font-size:0.78rem; color:#a0d8ef;">
 Active sim — {active_prop_abbr} · Class <strong style="color:#00d4ff">{res['motor_class']}</strong> · {res['total_impulse']:.1f} N·s · Pc_max {res['max_Pc_MPa']:.2f} MPa · Isp {res['avg_Isp']:.1f} s · Kn_max {res['max_Kn']:.0f} · {sf_col} SF {f"{strct['SF_yield']:.2f}" if strct else '—'}
